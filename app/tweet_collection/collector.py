@@ -8,6 +8,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 from tweepy import Paginator
+from pandas import DataFrame
 
 from app.twitter_service import twitter_api_client
 
@@ -59,21 +60,52 @@ def fetch_tweets(query=QUERY, start_date=START_DATE, end_date=END_DATE, max_resu
 
     request_params = dict(
         query=query,
-        # can't have spaces between the commas ??
-        expansions=['author_id','attachments.media_keys','referenced_tweets.id','geo.place_id'],
-        tweet_fields=['created_at','entities','context_annotations'],
-        media_fields=['url','preview_image_url'],
-        user_fields=['verified'],
+        expansions=['author_id', 'attachments.media_keys', 'referenced_tweets.id', 'geo.place_id'],
+        tweet_fields=['created_at', 'entities', 'context_annotations'],
+        media_fields=['url', 'preview_image_url'],
+        user_fields=['verified', 'created_at'],
         max_results=max_results,
         start_time=start_time,
         end_time=end_time
     )
-    #return Paginator(client.search_all_tweets, limit=limit, **request_params)
     args = {}
     if limit:
         args["limit"] = int(limit)
+    #return Paginator(client.search_all_tweets, limit=limit, **request_params)
     return Paginator(client.search_all_tweets, **args, **request_params)
 
+
+def process_response(response):
+    """
+    Param response : tweepy.client.Response
+    """
+    tweet_records = []
+    users = response.includes["users"]
+    #media = response.includes["media"]
+    #tweets = response.includes["tweets"]
+    for tweet in response.data:
+        user_id = tweet.author_id
+        user = [user for user in users if user.id == user_id][0]
+        tweet_records.append({
+            "status_id": tweet.id,
+            "status_text": tweet.text, # parse_full_text(tweet),
+            "created_at": tweet.created_at,
+            "user_id": user_id,
+            "user_screen_name":user.username,
+            "user_name": user.name,
+            "user_created_at": user.created_at,
+            "user_verified": user.verified
+        })
+    return DataFrame(tweet_records)
+
+        #User_ID
+        #Name
+        #Username
+        #Verified_User
+
+
+#def parse_full_text(tweet):
+#    return tweet.text
 
 
 if __name__ == "__main__":
@@ -86,6 +118,8 @@ if __name__ == "__main__":
     page_counter = 0
     for response in fetch_tweets():
         page_counter+=1
-        tweets = response.data
-        print("PAGE:", page_counter, "TWEETS:", len(tweets))
+        print("PAGE:", page_counter, "TWEETS:", len(response.data))
         #pprint(dict(tweets[0]))
+
+        tweets_df = process_response(response)
+        print(tweets_df.head())
