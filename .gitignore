@@ -4,6 +4,7 @@ google-credentials.json
 tweet-research-shared*.json
 
 data/*.csv
+app/*/*.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

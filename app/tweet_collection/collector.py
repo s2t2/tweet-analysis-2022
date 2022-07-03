@@ -11,6 +11,7 @@ from tweepy import Paginator
 from pandas import DataFrame, concat
 
 from app.twitter_service import twitter_api_client
+from app.tweet_collection.db import CollectionDatabase
 
 load_dotenv()
 
@@ -222,14 +223,8 @@ def process_response(response):
 
 if __name__ == "__main__":
 
-    #response = fetch_tweets()
-    #tweets = response.data
-    #print("TWEETS:", len(tweets))
-    #pprint(dict(tweets[0]))
+    db = CollectionDatabase()
 
-    DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
-
-    all_tweets, all_tags, all_mentions, all_annotations = [], [], [], []
     page_counter = 0
     for response in fetch_tweets():
         page_counter+=1
@@ -237,20 +232,7 @@ if __name__ == "__main__":
         tweets, tags, mentions, annotations = process_response(response)
         print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations))
 
-        #breakpoint()
-        all_tweets += tweets
-        all_tags += tags
-        all_mentions += mentions
-        all_annotations += annotations
-
-    tweets_df = DataFrame(all_tweets)
-    tags_df = DataFrame(all_tags)
-    mentions_df = DataFrame(all_mentions)
-    annotations_df = DataFrame(all_annotations)
-
-    print("WRITING TO CSV...")
-
-    tweets_df.to_csv(os.path.join(DATA_DIR, "tweets.csv"), index=False)
-    tags_df.to_csv(os.path.join(DATA_DIR, "tags.csv"), index=False)
-    mentions_df.to_csv(os.path.join(DATA_DIR, "mentions.csv"), index=False)
-    annotations_df.to_csv(os.path.join(DATA_DIR, "annotations.csv"), index=False)
+        db.save_tweets(tweets)
+        db.save_tags(tags)
+        db.save_mentions(mentions)
+        db.save_annotations(annotations)
