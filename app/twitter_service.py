@@ -11,7 +11,7 @@ from tweepy import Client
 load_dotenv()
 
 
-TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN", default = "OOPS")
+TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN", default="OOPS")
 
 
 #class TwitterService:
@@ -20,7 +20,7 @@ TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN", default = "OOPS")
 
 
 def twitter_api_client():
-    return Client(bearer_token = TWITTER_BEARER_TOKEN)
+    return Client(bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True)
 
 if __name__ == "__main__":
 
