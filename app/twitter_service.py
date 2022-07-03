@@ -14,15 +14,18 @@ load_dotenv()
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN", default = "OOPS")
 
 
-class TwitterService:
-    def __init__(self):
-        self.client = Client(bearer_token = TWITTER_BEARER_TOKEN)
+#class TwitterService:
+#    def __init__(self):
+#        self.client = Client(bearer_token = TWITTER_BEARER_TOKEN)
 
 
+def twitter_api_client():
+    return Client(bearer_token = TWITTER_BEARER_TOKEN)
 
 if __name__ == "__main__":
 
-    client = TwitterService().client
+    #client = TwitterService().client
+    client = twitter_api_client()
 
     query = '#COP26 lang:en'
 
