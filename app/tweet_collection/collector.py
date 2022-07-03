@@ -86,12 +86,13 @@ def fetch_tweets(query=QUERY, start_date=START_DATE, end_date=END_DATE, max_resu
 def process_response(response):
     """
     Param response : tweepy.client.Response
+        containing a page of tweets
     """
-    tweet_records = []
+    tweet_records, tag_records, mention_records, annotation_records = [], [], [], []
+
     users = response.includes["users"]
     media = response.includes["media"]
     tweets = response.includes["tweets"]
-
     for tweet in response.data:
         user_id = tweet.author_id
         user = [user for user in users if user.id == user_id][0]
@@ -124,7 +125,6 @@ def process_response(response):
                     quote_status_id = ref_id
                     quote_user_id = original.author_id
 
-
         tweet_records.append({
             "status_id": tweet.id,
             "status_text": full_text,
@@ -134,8 +134,6 @@ def process_response(response):
             "user_name": user.name,
             "user_created_at": user.created_at,
             "user_verified": user.verified,
-            # metadata for now
-            #"ref_types": ref_types
             "retweet_status_id": retweet_status_id,
             "retweet_user_id": retweet_user_id,
             "reply_status_id": reply_status_id,
@@ -143,7 +141,81 @@ def process_response(response):
             "quote_status_id": quote_status_id,
             "quote_user_id": quote_user_id,
         })
-    return DataFrame(tweet_records)
+
+        #
+        # ENTITIES
+        #
+        #{   'hashtags': [
+        #        {'end': 65, 'start': 45, 'tag': 'January6thCommittee'},
+        #        {'end': 178, 'start': 166, 'tag': 'FirstFamily'},
+        #        {'end': 198, 'start': 185, 'tag': 'SecondFamily'}
+        #    ],
+        #    'mentions': [
+        #        {'end': 12,'id': '32272710','start': 0,'username': 'Mama4Obama1'},
+        #        {'end': 27,'id': '14298769','start': 13,'username': 'MollyJongFast'},
+        #        {'end': 151,'id': '1323730225067339784','start': 140,'username': 'WhiteHouse'}
+        #    ]
+        #    "annotations": [
+        #        {'end': 51,'normalized_text': 'Trump','probability': 0.9979,'start': 47,'type': 'Person'},
+        #        {'end': 127,'normalized_text': 'Trump','probability': 0.9982,'start': 123,'type': 'Person'}
+        #    ]
+        #}
+
+        hashtag_entities = tweet.entities.get("hashtags") or []
+        tags = [{"status_id": tweet.id, "tag": ent["tag"]} for ent in hashtag_entities]
+        #print("TAGS:", tags)
+        tag_records += tags
+
+        mention_entities = tweet.entities.get("mentions") or []
+        mentions = [{"status_id": tweet.id, "username": ent["username"]} for ent in mention_entities]
+        #print("MENTIONS:", mentions)
+        mention_records += mentions
+
+        annotation_entities = tweet.entities.get("annotations") or []
+        annotations = [{
+            "status_id": tweet.id,
+            "text": ent["normalized_text"],
+            "probability": ent["probability"],
+            "type": ent["type"]
+        } for ent in annotation_entities]
+        #print("ANNOTATIONS:", annotations)
+        annotation_records += annotations
+
+
+    #
+    # MEDIA
+    #[
+    #    <Media media_key=3_1543008442390089728 type=photo>,
+    #    <Media media_key=7_1543006594677542913 type=video>,
+    #    <Media media_key=3_1542997774844788736 type=photo>,
+    #    <Media media_key=3_1542982822062858248 type=photo>,
+    #    <Media media_key=3_1542982194682941440 type=photo>,
+    #    <Media media_key=16_1542982002822901760 type=animated_gif>,
+    #    <Media media_key=7_1542966775452733443 type=video>,
+    #    <Media media_key=3_1542961753021095942 type=photo>
+    #]
+    #media_records = [dict(m) for m in media]
+    #print("MEDIA:")
+    #pprint(media_records)
+    #> 'media_key', 'type', 'url', 'preview_image_url',
+    # 'alt_text', 'duration_ms', 'height',  'width',
+    # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
+    #[
+    #    {   'media_key': '16_1542982002822901760',
+    #        'preview_image_url': 'https://pbs.twimg.com/tweet_video_thumb/FWnF9N0UcAA9yeW.jpg',
+    #        'type': 'animated_gif'
+    #    },
+    #    {   'media_key': '7_1542966775452733443',
+    #        'preview_image_url': 'https://pbs.twimg.com/ext_tw_video_thumb/1542966775452733443/pu/img/Z6xrwhlK54sLoWp9.jpg',
+    #        'type': 'video'
+    #    },
+    #    {
+    #        'media_key': '3_1542961753021095942',
+    #        'type': 'photo',
+    #        'url': 'https://pbs.twimg.com/media/FWmzihbWIAYkQp0.jpg'}]
+
+    #return DataFrame(tweet_records)
+    return tweet_records, tag_records, mention_records, annotation_records
 
 
 
@@ -156,20 +228,29 @@ if __name__ == "__main__":
     #pprint(dict(tweets[0]))
 
     DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
-    csv_filepath = os.path.join(DATA_DIR, "tweets.csv")
 
-    dfs = []
+    all_tweets, all_tags, all_mentions, all_annotations = [], [], [], []
     page_counter = 0
     for response in fetch_tweets():
         page_counter+=1
-        print("PAGE:", page_counter, "TWEETS:", len(response.data))
-        #pprint(dict(tweets[0]))
+        print("PAGE:", page_counter)
+        tweets, tags, mentions, annotations = process_response(response)
+        print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations))
 
-        tweets_df = process_response(response)
-        print(tweets_df.head())
-        #tweets_df.to_csv(csv_filepath)
-        dfs.append(tweets_df)
+        #breakpoint()
+        all_tweets += tweets
+        all_tags += tags
+        all_mentions += mentions
+        all_annotations += annotations
+
+    tweets_df = DataFrame(all_tweets)
+    tags_df = DataFrame(all_tags)
+    mentions_df = DataFrame(all_mentions)
+    annotations_df = DataFrame(all_annotations)
 
     print("WRITING TO CSV...")
-    final_df = concat(dfs)
-    final_df.to_csv(csv_filepath, index=False)
+
+    tweets_df.to_csv(os.path.join(DATA_DIR, "tweets.csv"), index=False)
+    tags_df.to_csv(os.path.join(DATA_DIR, "tags.csv"), index=False)
+    mentions_df.to_csv(os.path.join(DATA_DIR, "mentions.csv"), index=False)
+    annotations_df.to_csv(os.path.join(DATA_DIR, "annotations.csv"), index=False)
