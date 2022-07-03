@@ -8,7 +8,7 @@ from pprint import pprint
 
 from dotenv import load_dotenv
 from tweepy import Paginator
-from pandas import DataFrame
+from pandas import DataFrame, concat
 
 from app.twitter_service import twitter_api_client
 
@@ -81,31 +81,57 @@ def process_response(response):
     """
     tweet_records = []
     users = response.includes["users"]
-    #media = response.includes["media"]
-    #tweets = response.includes["tweets"]
+    media = response.includes["media"]
+    tweets = response.includes["tweets"]
+
     for tweet in response.data:
         user_id = tweet.author_id
         user = [user for user in users if user.id == user_id][0]
+
+        full_text = tweet.text
+
+        retweet_status_id = None
+        reply_status_id = None
+        quote_status_id = None
+        # sometimes value can be None even if attr is present (WEIRD)
+        if hasattr(tweet, "referenced_tweets") and tweet["referenced_tweets"]:
+            referenced_tweets = tweet["referenced_tweets"]
+            #print("REFS:", len(referenced_tweets))
+            for ref in referenced_tweets:
+                ref_id = ref.id
+                ref_type = ref.type #> "replied_to", "retweeted", "quoted"
+                if ref_type == "retweeted":
+                    #print("... RT")
+                    retweet_status_id = ref_id
+                    original = [tweet for tweet in tweets if tweet.id == ref_id][0]
+                    full_text = original.text
+                elif ref_type == "replied_to":
+                    #print("... REPLY")
+                    reply_status_id = ref_id
+                elif ref_type == "quoted":
+                    #print("... QUOTE")
+                    quote_status_id = ref_id
+
+
+
         tweet_records.append({
             "status_id": tweet.id,
-            "status_text": tweet.text, # parse_full_text(tweet),
+            "status_text": full_text,
             "created_at": tweet.created_at,
             "user_id": user_id,
             "user_screen_name":user.username,
             "user_name": user.name,
             "user_created_at": user.created_at,
-            "user_verified": user.verified
+            "user_verified": user.verified,
+            # metadata for now
+            #"ref_types": ref_types
+            "retweet_status_id": retweet_status_id,
+            "reply_status_id": reply_status_id,
+            "quote_status_id": quote_status_id,
         })
     return DataFrame(tweet_records)
 
-        #User_ID
-        #Name
-        #Username
-        #Verified_User
 
-
-#def parse_full_text(tweet):
-#    return tweet.text
 
 
 if __name__ == "__main__":
@@ -115,6 +141,10 @@ if __name__ == "__main__":
     #print("TWEETS:", len(tweets))
     #pprint(dict(tweets[0]))
 
+    DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+    csv_filepath = os.path.join(DATA_DIR, "tweets.csv")
+
+    dfs = []
     page_counter = 0
     for response in fetch_tweets():
         page_counter+=1
@@ -123,3 +153,9 @@ if __name__ == "__main__":
 
         tweets_df = process_response(response)
         print(tweets_df.head())
+        #tweets_df.to_csv(csv_filepath)
+        dfs.append(tweets_df)
+
+    print("WRITING TO CSV...")
+    final_df = concat(dfs)
+    final_df.to_csv(csv_filepath, index=False)
