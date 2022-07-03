@@ -60,7 +60,15 @@ def fetch_tweets(query=QUERY, start_date=START_DATE, end_date=END_DATE, max_resu
 
     request_params = dict(
         query=query,
-        expansions=['author_id', 'attachments.media_keys', 'referenced_tweets.id', 'geo.place_id'],
+        expansions=[
+            'author_id',
+            'attachments.media_keys',
+            'referenced_tweets.id',
+            'referenced_tweets.id.author_id',
+            #'in_reply_to_user_id',
+            'geo.place_id',
+            'entities.mentions.username'
+        ],
         tweet_fields=['created_at', 'entities', 'context_annotations'],
         media_fields=['url', 'preview_image_url'],
         user_fields=['verified', 'created_at'],
@@ -90,9 +98,10 @@ def process_response(response):
 
         full_text = tweet.text
 
-        retweet_status_id = None
-        reply_status_id = None
-        quote_status_id = None
+        retweet_status_id, retweet_user_id = None, None
+        reply_status_id, reply_user_id = None, None
+        quote_status_id, quote_user_id = None, None
+
         # sometimes value can be None even if attr is present (WEIRD)
         if hasattr(tweet, "referenced_tweets") and tweet["referenced_tweets"]:
             referenced_tweets = tweet["referenced_tweets"]
@@ -100,18 +109,20 @@ def process_response(response):
             for ref in referenced_tweets:
                 ref_id = ref.id
                 ref_type = ref.type #> "replied_to", "retweeted", "quoted"
+                original = [tweet for tweet in tweets if tweet.id == ref_id][0]
                 if ref_type == "retweeted":
                     #print("... RT")
                     retweet_status_id = ref_id
-                    original = [tweet for tweet in tweets if tweet.id == ref_id][0]
+                    retweet_user_id = original.author_id
                     full_text = original.text
                 elif ref_type == "replied_to":
                     #print("... REPLY")
                     reply_status_id = ref_id
+                    reply_user_id = original.author_id
                 elif ref_type == "quoted":
                     #print("... QUOTE")
                     quote_status_id = ref_id
-
+                    quote_user_id = original.author_id
 
 
         tweet_records.append({
@@ -126,8 +137,11 @@ def process_response(response):
             # metadata for now
             #"ref_types": ref_types
             "retweet_status_id": retweet_status_id,
+            "retweet_user_id": retweet_user_id,
             "reply_status_id": reply_status_id,
+            "reply_user_id": reply_user_id,
             "quote_status_id": quote_status_id,
+            "quote_user_id": quote_user_id,
         })
     return DataFrame(tweet_records)
 
