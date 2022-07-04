@@ -9,16 +9,30 @@ from pandas import DataFrame
 DB_FILEPATH = os.path.join(os.path.dirname(__file__), "tweet_collection_development.db") # a path to wherever your database exists
 
 class CollectionDatabase:
-    def __init__(self):
-        self.connection = sqlite3.connect(DB_FILEPATH)
+    def __init__(self, destructive=True, filepath=DB_FILEPATH):
+        self.destructive = bool(destructive)
+
+        self.filepath = filepath
+        print("DB FILEPATH:", self.filepath)
+
+        self.connection = sqlite3.connect(self.filepath)
         self.connection.row_factory = sqlite3.Row
-        print("CONNECTION:", self.connection)
+        #print("CONNECTION:", self.connection)
 
         self.cursor = self.connection.cursor()
-        print("CURSOR", self.cursor)
+        #print("CURSOR", self.cursor)
+
+        if self.destructive:
+            self.drop_tables()
 
         #self.migrate_tables()
 
+
+    def drop_tables(self):
+        print("DROPPING TABLES:")
+        for table_name in ["tweets", "tags", "mentions",  "annotations"]:
+            print("...", table_name)
+            self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
     #def migrate_tables(self):
     #    self.migrate_tweets()
@@ -58,67 +72,21 @@ class CollectionDatabase:
     #    print("SQL:", sql)
     #    self.cursor.execute(sql)
 
-    #def migrate_tags(self):
-    #    print("-------------------")
-    #    table_name = "tags"
-    #    sql = f"""
-    #        DROP TABLE IF EXISTS {table_name};
-    #        CREATE TABLE IF NOT EXISTS {table_name} (
-    #            ...
-    #        );
-    #    """
-    #    print("SQL:", sql)
-    #    #self.cursor.execute(sql)
-
-    #def migrate_mentions(self):
-    #    print("-------------------")
-    #    table_name = "mentions"
-    #    sql = f"""
-    #        DROP TABLE IF EXISTS {table_name};
-    #        CREATE TABLE IF NOT EXISTS {table_name} (
-    #            ...
-    #        );
-    #    """
-    #    print("SQL:", sql)
-    #    #self.cursor.execute(sql)
-
-    #def migrate_annotations(self):
-    #    print("-------------------")
-    #    table_name = "annotations"
-    #    sql = f"""
-    #        DROP TABLE IF EXISTS {table_name};
-    #        CREATE TABLE IF NOT EXISTS {table_name} (
-    #            ...
-    #        );
-    #    """
-    #    print("SQL:", sql)
-    #    #self.cursor.execute(sql)
-
-
-    #def migrate_media(self):
-    #    print("-------------------")
-    #    table_name = "media"
-    #    sql = f"""
-    #        DROP TABLE IF EXISTS {table_name};
-    #        CREATE TABLE IF NOT EXISTS {table_name} (
-    #            ...
-    #        );
-    #    """
-    #    print("SQL:", sql)
-    #    #self.cursor.execute(sql)
-
-
     #
     # INSERT DATA
     #
 
     def insert_data(self, table_name, records):
         df = DataFrame(records)
-        df.index.rename("id", inplace=True) # assigns a column label "id" for the index column
-        df.index += 1 # starts ids at 1 instead of 0
-        print(df.head())
+        #df.index.rename("row_id", inplace=True) # assigns a column label "id" for the index column
+        #df.index += 1 # starts ids at 1 instead of 0
+        #print(df.head())
         # https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_sql.html
-        df.to_sql(table_name, con=self.connection, if_exists="append")
+        df.to_sql(table_name, con=self.connection,
+            if_exists="append", # append to existing tables (don't throw error)
+            #index_label="row_id", # store unique ids for the rows, so we could count them (JK this restarts numbering at 1 for each df)
+            index=False
+        )
 
 
     def save_tweets(self, tweets):
