@@ -30,7 +30,7 @@ class CollectionDatabase:
 
     def drop_tables(self):
         print("DROPPING TABLES:")
-        for table_name in ["tweets", "tags", "mentions",  "annotations", "media", "status_media"]:
+        for table_name in ["tweets", "tags", "mentions",  "annotations", "media", "status_media", "status_entities"]:
             print("...", table_name)
             self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
@@ -77,6 +77,9 @@ class CollectionDatabase:
     #
 
     def insert_data(self, table_name, records):
+        if not records or not any(records):
+            return None
+
         df = DataFrame(records)
         #df.index.rename("row_id", inplace=True) # assigns a column label "id" for the index column
         #df.index += 1 # starts ids at 1 instead of 0
@@ -106,6 +109,11 @@ class CollectionDatabase:
 
     def save_status_media(self, status_media):
         self.insert_data("status_media", status_media)
+
+    def save_status_entities(self, status_entities):
+        ### todo: only store unique domains and entities
+        # also there is a source of all domains from twitter
+        self.insert_data("status_entities", status_entities)
 
 
 if __name__ == "__main__":

@@ -91,9 +91,10 @@ def process_response(response):
     """
     tweet_records, tag_records, mention_records, annotation_records = [], [], [], []
     status_media_records = []
+    status_entity_records = []
 
     users = response.includes["users"]
-    media = response.includes["media"]
+    media = response.includes.get("media") or []
     tweets = response.includes["tweets"]
 
     #
@@ -231,8 +232,55 @@ def process_response(response):
             #print("MEDIA KEYS:", media_keys)
             status_media_records += media_keys
 
+        #
+        # CONTEXT ANNOTATIONS
+        #
+        #
+        # [{'domain': {'description': 'Named people in the world like Nelson Mandela',
+        #              'id': '10',
+        #              'name': 'Person'},
+        #   'entity': {'description': '45th US President, Donald Trump',
+        #              'id': '799022225751871488',
+        #              'name': 'Donald Trump'}},
+        #  {'domain': {'description': 'Politicians in the world, like Joe Biden',
+        #              'id': '35',
+        #              'name': 'Politician'},
+        #   'entity': {'description': '45th US President, Donald Trump',
+        #              'id': '799022225751871488',
+        #              'name': 'Donald Trump'}},
+        #  {'domain': {'description': 'Named people in the world like Nelson Mandela',
+        #              'id': '10',
+        #              'name': 'Person'},
+        #   'entity': {'description': 'Joy Reid',
+        #              'id': '872880012436717568',
+        #              'name': 'Joy Reid'}},
+        #  {'domain': {'description': "A journalist like 'Anderson Cooper'",
+        #              'id': '94',
+        #              'name': 'Journalist'},
+        #   'entity': {'description': 'Joy Reid',
+        #              'id': '872880012436717568',
+        #              'name': 'Joy Reid'}}]
+
+        if tweet.context_annotations:
+            for context_annotation in tweet.context_annotations:
+                domain = context_annotation["domain"]
+                entity = context_annotation["entity"]
+                #entity["domain_id"] = domain["id"]
+                #entity["domain_name"] = domain["name"]
+                #entity["domain_desc"] = domain["description"]
+                #entity["status_id"] = tweet.id
+                #status_entity_records.append(entity)
+                status_entity_record = {
+                    "status_id": tweet.id,
+                    "domain_id": domain["id"],
+                    "entity_id": entity["id"]
+                }
+                status_entity_records.append(status_entity_record)
+
+
+
     #return DataFrame(tweet_records)
-    return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records
+    return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records, status_entity_records
 
 
 
@@ -245,9 +293,9 @@ if __name__ == "__main__":
     for response in fetch_tweets():
         page_counter+=1
         print("PAGE:", page_counter)
-        tweets, tags, mentions, annotations, media, status_media = process_response(response)
+        tweets, tags, mentions, annotations, media, status_media, status_entities = process_response(response)
         print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations),
-            "MEDIA:", len(media), "STATUS MEDIA:", len(status_media),
+            "MEDIA:", len(media), "STATUS MEDIA:", len(status_media), "STATUS ENTITIES:", len(status_entities),
         )
 
         db.save_tweets(tweets)
@@ -256,3 +304,4 @@ if __name__ == "__main__":
         db.save_annotations(annotations)
         db.save_media(media)
         db.save_status_media(status_media)
+        db.save_status_entities(status_entities)
