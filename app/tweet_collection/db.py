@@ -30,7 +30,7 @@ class CollectionDatabase:
 
     def drop_tables(self):
         print("DROPPING TABLES:")
-        for table_name in ["tweets", "tags", "mentions",  "annotations"]:
+        for table_name in ["tweets", "tags", "mentions",  "annotations", "media", "status_media"]:
             print("...", table_name)
             self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
@@ -100,6 +100,12 @@ class CollectionDatabase:
 
     def save_annotations(self, annotations):
         self.insert_data("annotations", annotations)
+
+    def save_media(self, media):
+        self.insert_data("media", media)
+
+    def save_status_media(self, status_media):
+        self.insert_data("status_media", status_media)
 
 
 if __name__ == "__main__":

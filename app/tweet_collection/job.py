@@ -90,10 +90,46 @@ def process_response(response):
         containing a page of tweets
     """
     tweet_records, tag_records, mention_records, annotation_records = [], [], [], []
+    status_media_records = []
 
     users = response.includes["users"]
     media = response.includes["media"]
     tweets = response.includes["tweets"]
+
+    #
+    # MEDIA
+    #[
+    #    <Media media_key=3_1543008442390089728 type=photo>,
+    #    <Media media_key=7_1543006594677542913 type=video>,
+    #    <Media media_key=3_1542997774844788736 type=photo>,
+    #    <Media media_key=3_1542982822062858248 type=photo>,
+    #    <Media media_key=3_1542982194682941440 type=photo>,
+    #    <Media media_key=16_1542982002822901760 type=animated_gif>,
+    #    <Media media_key=7_1542966775452733443 type=video>,
+    #    <Media media_key=3_1542961753021095942 type=photo>
+    #]
+    #
+    #> 'media_key', 'type', 'url', 'preview_image_url',
+    # 'alt_text', 'duration_ms', 'height',  'width',
+    # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
+    #[
+    #    {   'media_key': '16_1542982002822901760',
+    #        'preview_image_url': 'https://pbs.twimg.com/tweet_video_thumb/FWnF9N0UcAA9yeW.jpg',
+    #        'type': 'animated_gif'
+    #    },
+    #    {   'media_key': '7_1542966775452733443',
+    #        'preview_image_url': 'https://pbs.twimg.com/ext_tw_video_thumb/1542966775452733443/pu/img/Z6xrwhlK54sLoWp9.jpg',
+    #        'type': 'video'
+    #    },
+    #    {
+    #        'media_key': '3_1542961753021095942',
+    #        'type': 'photo',
+    #        'url': 'https://pbs.twimg.com/media/FWmzihbWIAYkQp0.jpg'}]
+
+    media_records = [dict(m) for m in media]
+    #print("MEDIA:")
+    #pprint(media_records)
+
     for tweet in response.data:
         user_id = tweet.author_id
         user = [user for user in users if user.id == user_id][0]
@@ -182,41 +218,21 @@ def process_response(response):
         #print("ANNOTATIONS:", annotations)
         annotation_records += annotations
 
+        #
+        # ATTACHMENTS
+        #
 
-    #
-    # MEDIA
-    #[
-    #    <Media media_key=3_1543008442390089728 type=photo>,
-    #    <Media media_key=7_1543006594677542913 type=video>,
-    #    <Media media_key=3_1542997774844788736 type=photo>,
-    #    <Media media_key=3_1542982822062858248 type=photo>,
-    #    <Media media_key=3_1542982194682941440 type=photo>,
-    #    <Media media_key=16_1542982002822901760 type=animated_gif>,
-    #    <Media media_key=7_1542966775452733443 type=video>,
-    #    <Media media_key=3_1542961753021095942 type=photo>
-    #]
-    #media_records = [dict(m) for m in media]
-    #print("MEDIA:")
-    #pprint(media_records)
-    #> 'media_key', 'type', 'url', 'preview_image_url',
-    # 'alt_text', 'duration_ms', 'height',  'width',
-    # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
-    #[
-    #    {   'media_key': '16_1542982002822901760',
-    #        'preview_image_url': 'https://pbs.twimg.com/tweet_video_thumb/FWnF9N0UcAA9yeW.jpg',
-    #        'type': 'animated_gif'
-    #    },
-    #    {   'media_key': '7_1542966775452733443',
-    #        'preview_image_url': 'https://pbs.twimg.com/ext_tw_video_thumb/1542966775452733443/pu/img/Z6xrwhlK54sLoWp9.jpg',
-    #        'type': 'video'
-    #    },
-    #    {
-    #        'media_key': '3_1542961753021095942',
-    #        'type': 'photo',
-    #        'url': 'https://pbs.twimg.com/media/FWmzihbWIAYkQp0.jpg'}]
+        attachments = tweet.attachments
+        if attachments:
+            #
+            # MEDIA
+            #
+            media_keys = [{"status_id": tweet.id, "media_key": mk} for mk in attachments["media_keys"]]
+            #print("MEDIA KEYS:", media_keys)
+            status_media_records += media_keys
 
     #return DataFrame(tweet_records)
-    return tweet_records, tag_records, mention_records, annotation_records
+    return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records
 
 
 
@@ -229,10 +245,14 @@ if __name__ == "__main__":
     for response in fetch_tweets():
         page_counter+=1
         print("PAGE:", page_counter)
-        tweets, tags, mentions, annotations = process_response(response)
-        print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations))
+        tweets, tags, mentions, annotations, media, status_media = process_response(response)
+        print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations),
+            "MEDIA:", len(media), "STATUS MEDIA:", len(status_media),
+        )
 
         db.save_tweets(tweets)
         db.save_tags(tags)
         db.save_mentions(mentions)
         db.save_annotations(annotations)
+        db.save_media(media)
+        db.save_status_media(status_media)
