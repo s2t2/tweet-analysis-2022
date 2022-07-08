@@ -12,6 +12,7 @@ from pandas import DataFrame, concat
 
 from app.twitter_service import twitter_api_client
 from app.tweet_collection.db import CollectionDatabase
+from app.tweet_collection.bq import BigQueryDatabase
 
 load_dotenv()
 
@@ -34,8 +35,7 @@ class Job:
         if self.storage_mode == "sqlite":
             self.db = CollectionDatabase()
         elif self.storage_mode == "bq":
-            #self.db = BigQueryService()
-            pass
+            self.db = BigQueryDatabase()
         else:
             raise AttributeError("oops wrong storage mode")
 
@@ -317,9 +317,9 @@ if __name__ == "__main__":
         )
 
         job.db.save_tweets(tweets)
-        job.db.save_tags(tags)
-        job.db.save_mentions(mentions)
-        job.db.save_annotations(annotations)
-        job.db.save_media(media)
-        job.db.save_status_media(status_media)
-        job.db.save_status_entities(status_entities)
+        #job.db.save_tags(tags)
+        #job.db.save_mentions(mentions)
+        #job.db.save_annotations(annotations)
+        #job.db.save_media(media)
+        #job.db.save_status_media(status_media)
+        #job.db.save_status_entities(status_entities)
