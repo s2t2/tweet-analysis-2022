@@ -5,6 +5,7 @@
 from datetime import datetime
 import os
 from pprint import pprint
+#from types import SimpleNamespace
 
 from dotenv import load_dotenv
 from tweepy import Paginator
@@ -38,8 +39,6 @@ class Job:
             self.db = BigQueryDatabase()
         else:
             raise AttributeError("oops wrong storage mode")
-
-        # todo: move the fetch tweets env vars here
 
 
     def fetch_tweets(self, query=QUERY, start_date=START_DATE, end_date=END_DATE, max_results=MAX_RESULTS, limit=PAGE_LIMIT):
@@ -102,7 +101,7 @@ class Job:
         return Paginator(client.search_all_tweets, **args, **request_params)
 
 
-    def process_response(self, response):
+    def parse_response(self, response):
         """
         Param response : tweepy.client.Response
             containing a page of tweets
@@ -145,7 +144,22 @@ class Job:
         #        'type': 'photo',
         #        'url': 'https://pbs.twimg.com/media/FWmzihbWIAYkQp0.jpg'}]
 
-        media_records = [dict(m) for m in media]
+        #media_records = [dict(m) for m in media]
+        media_records = [{
+            "media_key": m["media_key"],
+            "type": m["type"],
+            "url": m["url"],
+            "preview_image_url": m["preview_image_url"],
+            # elusive imaginary hypothetical fields?
+            "alt_text": m.get("alt_text"),
+            "duration_ms": m.get("duration_ms"),
+            "height": m.get("height"),
+            "width": m.get("width"),
+        } for m in media]
+
+
+
+
         #print("MEDIA:")
         #pprint(media_records)
 
@@ -223,16 +237,20 @@ class Job:
             tag_records += tags
 
             mention_entities = tweet.entities.get("mentions") or []
-            mentions = [{"status_id": tweet.id, "username": ent["username"]} for ent in mention_entities]
+            mentions = [{
+                "status_id": tweet.id,
+                "user_id": ent["id"],
+                "user_screen_name": ent["username"]
+            } for ent in mention_entities]
             #print("MENTIONS:", mentions)
             mention_records += mentions
 
             annotation_entities = tweet.entities.get("annotations") or []
             annotations = [{
                 "status_id": tweet.id,
+                "type": ent["type"],
                 "text": ent["normalized_text"],
                 "probability": ent["probability"],
-                "type": ent["type"]
             } for ent in annotation_entities]
             #print("ANNOTATIONS:", annotations)
             annotation_records += annotations
@@ -298,7 +316,9 @@ class Job:
 
 
         #return DataFrame(tweet_records)
+        #return return SimpleNamespace(k=v, k=v, k=v)
         return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records, status_entity_records
+
 
 
 
@@ -311,15 +331,15 @@ if __name__ == "__main__":
     for response in job.fetch_tweets():
         page_counter+=1
         print("PAGE:", page_counter)
-        tweets, tags, mentions, annotations, media, status_media, status_entities = job.process_response(response)
+        tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
         print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations),
             "MEDIA:", len(media), "STATUS MEDIA:", len(status_media), "STATUS ENTITIES:", len(status_entities),
         )
 
         job.db.save_tweets(tweets)
-        job.db.save_tags(tags)
-        job.db.save_mentions(mentions)
-        job.db.save_annotations(annotations)
+        job.db.save_status_tags(tags)
+        job.db.save_status_mentions(mentions)
+        job.db.save_status_annotations(annotations)
         job.db.save_media(media)
         job.db.save_status_media(status_media)
         job.db.save_status_entities(status_entities)

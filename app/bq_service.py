@@ -30,7 +30,7 @@ class BigQueryService():
         return df
 
     @classmethod
-    def split_into_batches(my_list, batch_size=10_000):
+    def split_into_batches(cls, my_list, batch_size=10_000):
         """Splits a list into evenly sized batches"""
         # h/t: https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
         for i in range(0, len(my_list), batch_size):

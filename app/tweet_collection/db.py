@@ -8,6 +8,12 @@ from pandas import DataFrame
 
 DB_FILEPATH = os.path.join(os.path.dirname(__file__), "tweet_collection_development.db") # a path to wherever your database exists
 
+TABLE_NAMES = [
+    # "domains", "entities",
+    "media", "tweets",
+    "status_annotations", "status_entities", "status_media", "status_mentions", "status_tags",
+]
+
 class CollectionDatabase:
     def __init__(self, destructive=True, filepath=DB_FILEPATH):
         self.destructive = bool(destructive)
@@ -30,7 +36,7 @@ class CollectionDatabase:
 
     def drop_tables(self):
         print("DROPPING TABLES:")
-        for table_name in ["tweets", "tags", "mentions",  "annotations", "media", "status_media", "status_entities"]:
+        for table_name in TABLE_NAMES:
             print("...", table_name)
             self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
@@ -92,28 +98,26 @@ class CollectionDatabase:
         )
 
 
+    def save_media(self, media):
+        self.insert_data("media", media)
+
     def save_tweets(self, tweets):
         self.insert_data("tweets", tweets)
 
-    def save_tags(self, tags):
-        self.insert_data("tags", tags)
+    def save_status_annotations(self, annotations):
+        self.insert_data("status_annotations", annotations)
 
-    def save_mentions(self, mentions):
-        self.insert_data("mentions", mentions)
-
-    def save_annotations(self, annotations):
-        self.insert_data("annotations", annotations)
-
-    def save_media(self, media):
-        self.insert_data("media", media)
+    def save_status_entities(self, status_entities):
+        self.insert_data("status_entities", status_entities)
 
     def save_status_media(self, status_media):
         self.insert_data("status_media", status_media)
 
-    def save_status_entities(self, status_entities):
-        ### todo: only store unique domains and entities
-        # also there is a source of all domains from twitter
-        self.insert_data("status_entities", status_entities)
+    def save_status_mentions(self, mentions):
+        self.insert_data("status_mentions", mentions)
+
+    def save_status_tags(self, tags):
+        self.insert_data("status_tags", tags)
 
 
 if __name__ == "__main__":

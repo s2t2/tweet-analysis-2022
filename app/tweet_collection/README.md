@@ -14,10 +14,15 @@ If this is your first time setting up the database, also run the migrations to c
 ```sh
 # WARNING!!! USE WITH CAUTION!!!
 # python -m app.tweet_collection.bq_migrations
+
+DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_collection.bq_migrations
 ```
 
 
 ### Twitter API Setup
+
+TODO: download comprehensive short list of entities and domains from twitter dev site...
+
 
 
 ## Usage
@@ -28,5 +33,9 @@ Collect tweets:
 python -m app.tweet_collection.job
 
 # pass custom params:
-START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" MAX_RESULTS=10 python -m app.tweet_collection.job
+START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" MAX_RESULTS=100 PAGE_LIMIT=3 python -m app.tweet_collection.job
+
+# store to bigquery:
+# DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET"  ...
+STORAGE_MODE="bq" START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" MAX_RESULTS=100 PAGE_LIMIT=3 python -m app.tweet_collection.job python -m app.tweet_collection.job
 ```
