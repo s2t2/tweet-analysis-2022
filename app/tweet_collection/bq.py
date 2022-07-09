@@ -18,9 +18,9 @@ class BigQueryDatabase(BigQueryService):
     #def domains_table(self):
     #    return self.client.get_table(f"{self.dataset_address}.domains")
 
-    #@cached_property
-    #def entities_table(self):
-    #    return self.client.get_table(f"{self.dataset_address}.entities")
+    @cached_property
+    def entities_table(self):
+        return self.client.get_table(f"{self.dataset_address}.entities")
 
     @cached_property
     def media_table(self):
@@ -54,6 +54,9 @@ class BigQueryDatabase(BigQueryService):
     # SAVE RECORDS
     #
 
+    def save_entities(self, records):
+        self.insert_records_in_batches(self.entities_table, records)
+
     def save_media(self, records):
         self.insert_records_in_batches(self.media_table, records)
 
@@ -80,10 +83,26 @@ class BigQueryDatabase(BigQueryService):
     # ... https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types
     #
 
-    def migrate_media_table(self):
+    def migrate_entities_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.media`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.entities`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.entities` (
+                entity_id INT64,
+                entity_name STRING,
+                domain_ids ARRAY<INT64>,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_media_table(self, destructive=False):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.media`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.media` (
                 media_key STRING,
                 type STRING,
@@ -99,10 +118,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_tweets_table(self):
+    def migrate_tweets_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.tweets`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.tweets`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.tweets` (
                 status_id INT64,
                 status_text STRING,
@@ -124,10 +145,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_annotations_table(self):
+    def migrate_status_annotations_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.status_annotations`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_annotations`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_annotations` (
                 status_id INT64,
                 type STRING,
@@ -137,10 +160,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_entities_table(self):
+    def migrate_status_entities_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.status_entities`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_entities`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_entities` (
                 status_id INT64,
                 domain_id INT64,
@@ -149,10 +174,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_media_table(self):
+    def migrate_status_media_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.status_media`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_media`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_media` (
                 status_id INT64,
                 media_key STRING
@@ -160,10 +187,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_mentions_table(self):
+    def migrate_status_mentions_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.status_mentions`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_mentions`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_mentions` (
                 status_id INT64,
                 user_id INT64,
@@ -172,10 +201,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_tags_table(self):
+    def migrate_status_tags_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
-        sql = f"""
-            DROP TABLE IF EXISTS `{self.dataset_address}.status_tags`;
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_tags`; "
+        sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_tags` (
                 status_id INT64,
                 tag STRING,
