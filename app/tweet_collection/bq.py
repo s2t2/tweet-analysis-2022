@@ -13,12 +13,91 @@ class BigQueryDatabase(BigQueryService):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
+
+    #@cached_property
+    #def domains_table(self):
+    #    return self.client.get_table(f"{self.dataset_address}.domains")
+
+    #@cached_property
+    #def entities_table(self):
+    #    return self.client.get_table(f"{self.dataset_address}.entities")
+
+    @cached_property
+    def media_table(self):
+        return self.client.get_table(f"{self.dataset_address}.media")
+
     @cached_property
     def tweets_table(self):
         return self.client.get_table(f"{self.dataset_address}.tweets")
 
+    @cached_property
+    def status_annotations_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_annotations")
+
+    @cached_property
+    def status_entities_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_entities")
+
+    @cached_property
+    def status_media_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_media")
+
+    @cached_property
+    def status_mentions_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_mentions")
+
+    @cached_property
+    def status_tags_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_tags")
+
+    #
+    # SAVE RECORDS
+    #
+
+    def save_media(self, records):
+        self.insert_records_in_batches(self.media_table, records)
+
     def save_tweets(self, records):
         self.insert_records_in_batches(self.tweets_table, records)
+
+    def save_status_annotations(self, records):
+        self.insert_records_in_batches(self.status_annotations_table, records)
+
+    def save_status_entities(self, records):
+        self.insert_records_in_batches(self.status_entities_table, records)
+
+    def save_status_media(self, records):
+        self.insert_records_in_batches(self.status_media_table, records)
+
+    def save_status_mentions(self, records):
+        self.insert_records_in_batches(self.status_mentions_table, records)
+
+    def save_status_tags(self, records):
+        self.insert_records_in_batches(self.status_tags_table, records)
+
+    #
+    # MIGRATE TABLES
+    # ... https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types
+    #
+
+    def migrate_media_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.media`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.media` (
+                media_key STRING,
+                type STRING,
+                url STRING,
+                preview_image_url STRING,
+
+                -- we haven't actually seen these yet
+                alt_text STRING,
+                duration_ms INT64,
+                height INT64,
+                width INT64,
+            );
+        """
+        self.execute_query(sql)
 
     def migrate_tweets_table(self):
         """WARNING! USE WITH EXTREME CAUTION!"""
@@ -41,6 +120,65 @@ class BigQueryDatabase(BigQueryService):
                 reply_user_id INT64,
                 quote_status_id INT64,
                 quote_user_id INT64,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_annotations_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.status_annotations`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_annotations` (
+                status_id INT64,
+                type STRING,
+                text STRING,
+                probability FLOAT64,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_entities_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.status_entities`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_entities` (
+                status_id INT64,
+                domain_id INT64,
+                entity_id INT64,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_media_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.status_media`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_media` (
+                status_id INT64,
+                media_key STRING
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_mentions_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.status_mentions`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_mentions` (
+                status_id INT64,
+                user_id INT64,
+                user_screen_name STRING,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_tags_table(self):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = f"""
+            DROP TABLE IF EXISTS `{self.dataset_address}.status_tags`;
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_tags` (
+                status_id INT64,
+                tag STRING,
             );
         """
         self.execute_query(sql)

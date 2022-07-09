@@ -12,10 +12,9 @@ Create two new datasets for each new collection effort. Named `DATASET_ID_develo
 If this is your first time setting up the database, also run the migrations to create the tables:
 
 ```sh
-python -m app.tweet_collection.bq_migrations
+# WARNING!!! USE WITH CAUTION!!!
+# python -m app.tweet_collection.bq_migrations
 ```
-
-> NOTE: be careful when running this script, it is destructive!
 
 
 ### Twitter API Setup
