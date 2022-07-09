@@ -5,7 +5,8 @@
 from datetime import datetime
 import os
 from pprint import pprint
-#from types import SimpleNamespace
+from types import SimpleNamespace
+from functools import cached_property
 
 from dotenv import load_dotenv
 from tweepy import Paginator
@@ -27,6 +28,25 @@ END_DATE = os.getenv("END_DATE", default="2022-01-03")
 
 MAX_RESULTS = int(os.getenv("MAX_RESULTS", default="100")) # per page
 PAGE_LIMIT = os.getenv("PAGE_LIMIT") # num of pages max (use only in development)
+
+class ParsedResponse(SimpleNamespace):
+    def __repr__(self):
+        return f"<TweetsResponse size={len(self.tweets)}>"
+
+    @cached_property
+    def metrics(self):
+        return f"""
+            MEDIA: {len(self.media)}
+            TWEETS: {len(self.tweets)}
+              x ANNOTATIONS: {len(self.status_annotations)}
+              x ENTITIES: {len(self.status_entities)}
+              x MEDIA: {len(self.status_media)}
+              x MENTIONS: {len(self.status_mentions)}
+              x TAGS: {len(self.status_tags)}
+        """
+
+    def print_metrics_log(self):
+        print(f"MEDIA: {len(self.media)} | TWEETS: {len(self.tweets)} | ANN: {len(self.status_annotations)} | ENT: {len(self.status_entities)} | MED: {len(self.status_media)} | MEN: {len(self.status_mentions)} | TAG: {len(self.status_tags)}")
 
 
 class Job:
@@ -316,10 +336,16 @@ class Job:
 
 
         #return DataFrame(tweet_records)
-        #return return SimpleNamespace(k=v, k=v, k=v)
-        return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records, status_entity_records
-
-
+        #return tweet_records, tag_records, mention_records, annotation_records, media_records, status_media_records, status_entity_records
+        return ParsedResponse(
+            media=media_records,
+            tweets=tweet_records,
+            status_annotations=annotation_records,
+            status_entities=status_entity_records,
+            status_media=status_media_records,
+            status_mentions=mention_records,
+            status_tags=tag_records,
+        )
 
 
 
@@ -331,15 +357,16 @@ if __name__ == "__main__":
     for response in job.fetch_tweets():
         page_counter+=1
         print("PAGE:", page_counter)
-        tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
-        print("... TWEETS:", len(tweets), "TAGS:", len(tags), "MENTIONS:", len(mentions), "ANNOTATIONS:", len(annotations),
-            "MEDIA:", len(media), "STATUS MEDIA:", len(status_media), "STATUS ENTITIES:", len(status_entities),
-        )
+        #tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
+        pr = job.parse_response(response)
+        #print(pr)
+        #print(pr.metrics)
+        pr.print_metrics_log()
 
-        job.db.save_tweets(tweets)
-        job.db.save_status_tags(tags)
-        job.db.save_status_mentions(mentions)
-        job.db.save_status_annotations(annotations)
-        job.db.save_media(media)
-        job.db.save_status_media(status_media)
-        job.db.save_status_entities(status_entities)
+        job.db.save_tweets(pr.tweets)
+        job.db.save_status_tags(pr.status_tags)
+        job.db.save_status_mentions(pr.status_mentions)
+        job.db.save_status_annotations(pr.status_annotations)
+        job.db.save_media(pr.media)
+        job.db.save_status_media(pr.status_media)
+        job.db.save_status_entities(pr.status_entities)
