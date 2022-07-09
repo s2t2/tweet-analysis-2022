@@ -45,8 +45,9 @@ class ParsedResponse(SimpleNamespace):
               x TAGS: {len(self.status_tags)}
         """
 
-    def print_metrics_log(self):
-        print(f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | A: {len(self.status_annotations)} | E: {len(self.status_entities)} | M: {len(self.media)} / {len(self.status_media)}")
+    @cached_property
+    def metrics_log(self):
+        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} X {len(self.status_media)}"
 
 
 class Job:
@@ -200,20 +201,30 @@ class Job:
                 for ref in referenced_tweets:
                     ref_id = ref.id
                     ref_type = ref.type #> "replied_to", "retweeted", "quoted"
-                    original = [tweet for tweet in tweets if tweet.id == ref_id][0]
+
+                    #original = [tweet for tweet in tweets if tweet.id == ref_id][0]
+                    try:
+                        original = [tweet for tweet in tweets if tweet.id == ref_id][0]
+                    except Exception as err:
+                        print(err)
+                        original = None
+
                     if ref_type == "retweeted":
                         #print("... RT")
                         retweet_status_id = ref_id
-                        retweet_user_id = original.author_id
-                        full_text = original.text
+                        if original:
+                            retweet_user_id = original.author_id
+                            full_text = original.text
                     elif ref_type == "replied_to":
                         #print("... REPLY")
                         reply_status_id = ref_id
-                        reply_user_id = original.author_id
+                        if original:
+                            reply_user_id = original.author_id
                     elif ref_type == "quoted":
                         #print("... QUOTE")
                         quote_status_id = ref_id
-                        quote_user_id = original.author_id
+                        if original:
+                            quote_user_id = original.author_id
 
             tweet_records.append({
                 "status_id": tweet.id,
@@ -251,29 +262,31 @@ class Job:
             #    ]
             #}
 
-            hashtag_entities = tweet.entities.get("hashtags") or []
-            tags = [{"status_id": tweet.id, "tag": ent["tag"]} for ent in hashtag_entities]
-            #print("TAGS:", tags)
-            tag_records += tags
+            entities = tweet.entities
+            if entities:
+                hashtag_entities = entities.get("hashtags") or []
+                tags = [{"status_id": tweet.id, "tag": ent["tag"]} for ent in hashtag_entities]
+                #print("TAGS:", tags)
+                tag_records += tags
 
-            mention_entities = tweet.entities.get("mentions") or []
-            mentions = [{
-                "status_id": tweet.id,
-                "user_id": ent["id"],
-                "user_screen_name": ent["username"]
-            } for ent in mention_entities]
-            #print("MENTIONS:", mentions)
-            mention_records += mentions
+                mention_entities = entities.get("mentions") or []
+                mentions = [{
+                    "status_id": tweet.id,
+                    "user_id": ent["id"],
+                    "user_screen_name": ent["username"]
+                } for ent in mention_entities]
+                #print("MENTIONS:", mentions)
+                mention_records += mentions
 
-            annotation_entities = tweet.entities.get("annotations") or []
-            annotations = [{
-                "status_id": tweet.id,
-                "type": ent["type"],
-                "text": ent["normalized_text"],
-                "probability": ent["probability"],
-            } for ent in annotation_entities]
-            #print("ANNOTATIONS:", annotations)
-            annotation_records += annotations
+                annotation_entities = entities.get("annotations") or []
+                annotations = [{
+                    "status_id": tweet.id,
+                    "type": ent["type"],
+                    "text": ent["normalized_text"],
+                    "probability": ent["probability"],
+                } for ent in annotation_entities]
+                #print("ANNOTATIONS:", annotations)
+                annotation_records += annotations
 
             #
             # ATTACHMENTS
@@ -361,7 +374,7 @@ if __name__ == "__main__":
         pr = job.parse_response(response)
         #print(pr)
         #print(pr.metrics)
-        pr.print_metrics_log()
+        print(pr.metrics_log)
 
         job.db.save_tweets(pr.tweets)
         job.db.save_status_tags(pr.status_tags)
