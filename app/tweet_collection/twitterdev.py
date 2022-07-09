@@ -38,7 +38,8 @@ def fetch_context_entities():
 
     # convert csv_string or int to a list of ints:
     df["domain_ids"] = df["domains"].apply(domains_list)
-    df.drop(columns=["domains"], inplace=True)
+    #df.drop(columns=["domains"], inplace=True)
+    df.rename(columns={"domains":"domains_csv"}, inplace=True)
 
     # clean tab characters and other spaces from the entity names:
     df["entity_name"] = df["entity_name"].apply(lambda txt: txt.strip())

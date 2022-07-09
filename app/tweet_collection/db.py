@@ -15,7 +15,7 @@ TABLE_NAMES = [
 ]
 
 class CollectionDatabase:
-    def __init__(self, destructive=True, filepath=DB_FILEPATH):
+    def __init__(self, destructive=False, filepath=DB_FILEPATH):
         self.destructive = bool(destructive)
 
         self.filepath = filepath
@@ -33,12 +33,17 @@ class CollectionDatabase:
 
         #self.migrate_tables()
 
+    def drop_table(self, table_name):
+        self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
 
     def drop_tables(self):
         print("DROPPING TABLES:")
         for table_name in TABLE_NAMES:
             print("...", table_name)
-            self.cursor.execute(f"DROP TABLE IF EXISTS {table_name};")
+            self.drop_table(table_name)
+
+    def drop_entities_table(self):
+        self.drop_table("entities")
 
     #def migrate_tables(self):
     #    self.migrate_tweets()
@@ -98,6 +103,9 @@ class CollectionDatabase:
         )
 
 
+    def save_entities(self, entities):
+        self.insert_data("entities", entities)
+
     def save_media(self, media):
         self.insert_data("media", media)
 
@@ -118,6 +126,10 @@ class CollectionDatabase:
 
     def save_status_tags(self, tags):
         self.insert_data("status_tags", tags)
+
+
+
+
 
 
 if __name__ == "__main__":

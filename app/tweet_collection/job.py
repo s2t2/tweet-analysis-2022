@@ -55,7 +55,7 @@ class Job:
         self.storage_mode = storage_mode
 
         if self.storage_mode == "sqlite":
-            self.db = CollectionDatabase()
+            self.db = CollectionDatabase(destructive=True) # todo: move migration process earlier if desired
         elif self.storage_mode == "bq":
             self.db = BigQueryDatabase()
         else:

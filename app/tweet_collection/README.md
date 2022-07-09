@@ -47,6 +47,8 @@ Collect domains and entities:
 ```sh
 # python -m app.tweet_collection.twitterdev
 
+python -m app.tweet_collection.db_seeds
+
 # DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" ...
 python -m app.tweet_collection.bq_seeds
 ```
