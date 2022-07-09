@@ -47,10 +47,22 @@ def fetch_context_entities():
     #df = df.reindex(columns=["domain_ids", "entity_id", "entity_name"])
     return df
 
+def fetch_context_domains():
+    # todo: update the url when a new data file is released
+    request_url = "https://raw.githubusercontent.com/s2t2/twitter-context-annotations/main/files/evergreen-context-domains-20220601.csv"
+    return read_csv(request_url)
+
+
+
+
 if __name__ == "__main__":
 
     entities_df = fetch_context_entities()
-
     print(len(entities_df))
     print(entities_df.columns.tolist())
     print(entities_df.head())
+
+
+    domains_df = fetch_context_domains()
+    print(domains_df.head())
+    print(len(domains_df))

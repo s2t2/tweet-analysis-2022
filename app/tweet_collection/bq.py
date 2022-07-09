@@ -14,12 +14,14 @@ class BigQueryDatabase(BigQueryService):
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
 
-    #@cached_property
-    #def domains_table(self):
-    #    return self.client.get_table(f"{self.dataset_address}.domains")
+    @cached_property
+    def domains_table(self):
+        """consider calling this context_domains"""
+        return self.client.get_table(f"{self.dataset_address}.domains")
 
     @cached_property
     def entities_table(self):
+        """consider calling this context_entities"""
         return self.client.get_table(f"{self.dataset_address}.entities")
 
     @cached_property
@@ -54,6 +56,9 @@ class BigQueryDatabase(BigQueryService):
     # SAVE RECORDS
     #
 
+    def save_domains(self, records):
+        self.insert_records_in_batches(self.domains_table, records)
+
     def save_entities(self, records):
         self.insert_records_in_batches(self.entities_table, records)
 
@@ -82,6 +87,19 @@ class BigQueryDatabase(BigQueryService):
     # MIGRATE TABLES
     # ... https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types
     #
+
+    def migrate_domains_table(self, destructive=False):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.domains`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.domains` (
+                domain_id INT64,
+                domain_name STRING,
+            );
+        """
+        self.execute_query(sql)
 
     def migrate_entities_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
