@@ -42,8 +42,12 @@ class CollectionDatabase:
             print("...", table_name)
             self.drop_table(table_name)
 
+    def drop_domains_table(self):
+        self.drop_table("domains")
+
     def drop_entities_table(self):
         self.drop_table("entities")
+
 
     #def migrate_tables(self):
     #    self.migrate_tweets()
@@ -103,29 +107,32 @@ class CollectionDatabase:
         )
 
 
-    def save_entities(self, entities):
-        self.insert_data("entities", entities)
+    def save_domains(self, records):
+        self.insert_data("domains", records)
 
-    def save_media(self, media):
-        self.insert_data("media", media)
+    def save_entities(self, records):
+        self.insert_data("entities", records)
 
-    def save_tweets(self, tweets):
-        self.insert_data("tweets", tweets)
+    def save_media(self, records):
+        self.insert_data("media", records)
 
-    def save_status_annotations(self, annotations):
-        self.insert_data("status_annotations", annotations)
+    def save_tweets(self, records):
+        self.insert_data("tweets", records)
 
-    def save_status_entities(self, status_entities):
-        self.insert_data("status_entities", status_entities)
+    def save_status_annotations(self, records):
+        self.insert_data("status_annotations", records)
 
-    def save_status_media(self, status_media):
-        self.insert_data("status_media", status_media)
+    def save_status_entities(self, records):
+        self.insert_data("status_entities", records)
 
-    def save_status_mentions(self, mentions):
-        self.insert_data("status_mentions", mentions)
+    def save_status_media(self, records):
+        self.insert_data("status_media", records)
 
-    def save_status_tags(self, tags):
-        self.insert_data("status_tags", tags)
+    def save_status_mentions(self, records):
+        self.insert_data("status_mentions", records)
+
+    def save_status_tags(self, records):
+        self.insert_data("status_tags", records)
 
 
 
