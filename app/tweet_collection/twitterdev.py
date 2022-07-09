@@ -21,23 +21,35 @@
 
 from pandas import read_csv
 
-def domains_list(domains_val):
+def domains_list(domains_val) -> list:
     """
+    Converts csv_string or int to a list of ints.
+
     Params domains_val : int like 10 or string like "10,56,131"
+
+    Returns a list of ints.
     """
     return [int(domain_id) for domain_id in str(domains_val).split(",")]
 
+def fetch_context_entities():
+    # todo: update the url when a new data file is released
+    request_url = "https://raw.githubusercontent.com/twitterdev/twitter-context-annotations/6c349b2f3e1a3e7aca54d941225c485698a93c7a/files/evergreen-context-entities-20220601.csv"
+    df = read_csv(request_url)
 
+    # convert csv_string or int to a list of ints:
+    df["domain_ids"] = df["domains"].apply(domains_list)
+    df.drop(columns=["domains"], inplace=True)
+
+    # clean tab characters and other spaces from the entity names:
+    df["entity_name"] = df["entity_name"].apply(lambda txt: txt.strip())
+
+    #df = df.reindex(columns=["domain_ids", "entity_id", "entity_name"])
+    return df
 
 if __name__ == "__main__":
 
-    context_entities_url = "https://raw.githubusercontent.com/twitterdev/twitter-context-annotations/6c349b2f3e1a3e7aca54d941225c485698a93c7a/files/evergreen-context-entities-20220601.csv"
-    df = read_csv(context_entities_url)
+    entities_df = fetch_context_entities()
 
-    # domains is a CSV string like "10,56,131"
-    # convert to a list:
-    df["domain_ids"] = df["domains"].apply(domains_list)
-
-    print(df.head())
-
-    breakpoint()
+    print(len(entities_df))
+    print(entities_df.columns.tolist())
+    print(entities_df.head())
