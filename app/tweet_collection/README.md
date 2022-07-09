@@ -33,9 +33,9 @@ Collect tweets:
 python -m app.tweet_collection.job
 
 # pass custom params:
-START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" MAX_RESULTS=100 PAGE_LIMIT=3 python -m app.tweet_collection.job
+START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" PAGE_LIMIT=3 python -m app.tweet_collection.job
 
 # store to bigquery:
 # DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET"  ...
-STORAGE_MODE="bq" START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" MAX_RESULTS=100 PAGE_LIMIT=3 python -m app.tweet_collection.job python -m app.tweet_collection.job
+STORAGE_MODE="bq" START_DATE="2022-07-01" END_DATE="2022-07-01" QUERY="lang:en #january6thcommittee" PAGE_LIMIT=3 python -m app.tweet_collection.job python -m app.tweet_collection.job
 ```

@@ -46,7 +46,7 @@ class ParsedResponse(SimpleNamespace):
         """
 
     def print_metrics_log(self):
-        print(f"MEDIA: {len(self.media)} | TWEETS: {len(self.tweets)} | ANN: {len(self.status_annotations)} | ENT: {len(self.status_entities)} | MED: {len(self.status_media)} | MEN: {len(self.status_mentions)} | TAG: {len(self.status_tags)}")
+        print(f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | A: {len(self.status_annotations)} | E: {len(self.status_entities)} | M: {len(self.media)} / {len(self.status_media)}")
 
 
 class Job:
