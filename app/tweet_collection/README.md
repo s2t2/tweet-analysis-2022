@@ -19,10 +19,6 @@ DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_collection.bq_mi
 ```
 
 
-### Twitter API Setup
-
-TODO: download comprehensive short list of entities and domains from twitter dev site...
-
 
 
 ## Usage
