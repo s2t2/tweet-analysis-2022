@@ -217,6 +217,12 @@ class Job:
                         if original:
                             retweet_user_id = original.author_id
                             full_text = original.text
+
+                        # also get the original tweet's url entities (urls at least)
+                        # whether here or in a separate process...
+                        # because it requires us to look up the original tweet
+                        # we'll do in a separate process so we can look up many original tweets in batches
+
                     elif ref_type == "replied_to":
                         #print("... REPLY")
                         reply_status_id = ref_id
