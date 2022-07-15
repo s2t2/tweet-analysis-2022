@@ -43,11 +43,12 @@ class ParsedResponse(SimpleNamespace):
               x MEDIA: {len(self.status_media)}
               x MENTIONS: {len(self.status_mentions)}
               x TAGS: {len(self.status_tags)}
+              x URLS: {len(self.status_urls)}
         """
 
     @cached_property
     def metrics_log(self):
-        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} X {len(self.status_media)}"
+        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | URLS: {len(self.status_urls)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} ST-M: {len(self.status_media)}"
 
 
 class Job:
@@ -130,6 +131,7 @@ class Job:
         tweet_records, tag_records, mention_records, annotation_records = [], [], [], []
         status_media_records = []
         status_entity_records = []
+        url_records = []
 
         users = response.includes["users"]
         media = response.includes.get("media") or []
@@ -288,6 +290,14 @@ class Job:
                 #print("ANNOTATIONS:", annotations)
                 annotation_records += annotations
 
+                url_entities = entities.get('urls') or []
+                urls = [{
+                    'status_id' : tweet.id,
+                    'url' : url_ent['expanded_url']
+                } for url_ent in url_entities]
+                #print("URLS:", urls)
+                url_records += urls
+
             #
             # ATTACHMENTS
             #
@@ -358,6 +368,7 @@ class Job:
             status_media=status_media_records,
             status_mentions=mention_records,
             status_tags=tag_records,
+            status_urls=url_records
         )
 
 
@@ -383,3 +394,4 @@ if __name__ == "__main__":
         job.db.save_media(pr.media)
         job.db.save_status_media(pr.status_media)
         job.db.save_status_entities(pr.status_entities)
+        job.db.save_status_urls(pr.status_urls)

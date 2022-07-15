@@ -20,3 +20,4 @@ if __name__ == "__main__":
     db.migrate_status_media_table(destructive=True)
     db.migrate_status_mentions_table(destructive=True)
     db.migrate_status_tags_table(destructive=True)
+    db.migrate_status_urls_table(destructive=True)

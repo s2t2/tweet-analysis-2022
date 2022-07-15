@@ -11,7 +11,7 @@ DB_FILEPATH = os.path.join(os.path.dirname(__file__), "tweet_collection_developm
 TABLE_NAMES = [
     # "domains", "entities",
     "media", "tweets",
-    "status_annotations", "status_entities", "status_media", "status_mentions", "status_tags",
+    "status_annotations", "status_entities", "status_media", "status_mentions", "status_tags", "status_urls"
 ]
 
 class CollectionDatabase:
@@ -133,6 +133,9 @@ class CollectionDatabase:
 
     def save_status_tags(self, records):
         self.insert_data("status_tags", records)
+
+    def save_status_urls(self, records):
+        self.insert_data("status_urls", records)
 
 
 

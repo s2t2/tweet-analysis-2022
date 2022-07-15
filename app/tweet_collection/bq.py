@@ -9,6 +9,11 @@ DATASET_ADDRESS = os.getenv("DATASET_ADDRESS", default="tweet-collector-py.jan6_
 
 class BigQueryDatabase(BigQueryService):
 
+    # NOTE: we do want to use cached properties for the tables...
+    # ... however we saw some issues the first time after running migrations
+    # ... that the old values were being erroneously referenced
+    # ... and the tables were None
+
     def __init__(self, dataset_address=DATASET_ADDRESS, client=None):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
@@ -52,6 +57,10 @@ class BigQueryDatabase(BigQueryService):
     def status_tags_table(self):
         return self.client.get_table(f"{self.dataset_address}.status_tags")
 
+    @cached_property
+    def status_urls_table(self):
+        return self.client.get_table(f"{self.dataset_address}.status_urls")
+
     #
     # SAVE RECORDS
     #
@@ -82,6 +91,9 @@ class BigQueryDatabase(BigQueryService):
 
     def save_status_tags(self, records):
         self.insert_records_in_batches(self.status_tags_table, records)
+
+    def save_status_urls(self, records):
+        self.insert_records_in_batches(self.status_urls_table, records)
 
     #
     # MIGRATE TABLES
@@ -228,6 +240,19 @@ class BigQueryDatabase(BigQueryService):
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_tags` (
                 status_id INT64,
                 tag STRING,
+            );
+        """
+        self.execute_query(sql)
+
+    def migrate_status_urls_table(self, destructive=False):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_urls`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_urls` (
+                status_id INT64,
+                url STRING,
             );
         """
         self.execute_query(sql)
