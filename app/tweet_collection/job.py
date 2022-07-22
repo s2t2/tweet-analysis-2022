@@ -67,25 +67,22 @@ class Job:
 
 
         self.job_id = str(uuid4())
-        self.query=query
-        self.start_date=start_date
-        self.end_date=end_date
-        self.max_results=max_results
-        self.page_limit=page_limit
+        self.query = query
+        self.start_date = start_date
+        self.end_date = end_date
+        self.max_results = max_results
+        self.page_limit = page_limit
 
         self.job_start = None
         self.job_end = None
 
+    @staticmethod
+    def serializable(val):
+        if val:
+            return str(val)
+
     @property
     def metadata(self):
-        job_start = self.job_start
-        if job_start:
-            job_start = str(job_start)
-
-        job_end = self.job_end
-        if job_end:
-            job_start = str(job_end)
-
         return {
             "job_id": self.job_id,
 
@@ -95,8 +92,8 @@ class Job:
             "max_results": self.max_results,
             "page_limit": self.page_limit,
 
-            "job_start": job_start,
-            "job_end": job_end,
+            "job_start": self.serializable(self.job_start),
+            "job_end": self.serializable(self.job_end),
         }
 
 
@@ -245,7 +242,7 @@ class Job:
                     try:
                         original = [tweet for tweet in tweets if tweet.id == ref_id][0]
                     except Exception as err:
-                        print(err) #> list index out of range
+                        print(err, "original tweet not found. will need to look it up later.") #> list index out of range
                         original = None
 
                     if ref_type == "retweeted":
