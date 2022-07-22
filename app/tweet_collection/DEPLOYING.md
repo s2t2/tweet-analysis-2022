@@ -73,3 +73,9 @@ git push heroku main
 
 # git push heroku mybranch:main
 ```
+
+Viewing the logs:
+
+```sh
+heroku logs --tail
+```

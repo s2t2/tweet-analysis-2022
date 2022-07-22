@@ -244,7 +244,7 @@ class Job:
                     try:
                         original = [tweet for tweet in tweets if tweet.id == ref_id][0]
                     except Exception as err:
-                        print(err)
+                        print(err) #> list index out of range
                         original = None
 
                     if ref_type == "retweeted":

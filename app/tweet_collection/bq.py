@@ -202,7 +202,7 @@ class BigQueryDatabase(BigQueryService):
             sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.tweets`; "
         sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.tweets` (
-                job_id INT64,
+                job_id STRING,
                 status_id INT64,
                 status_text STRING,
                 created_at TIMESTAMP,
