@@ -72,13 +72,24 @@ class BigQueryDatabase(BigQueryService):
     def save_job_metadata(self, record):
         self.insert_records_in_batches(self.jobs_table, [record])
 
-    #def update_job_metadata(self, record):
-    # todo: add end time to job record
-    # BQ SQL
-    # "UPDATE dataset.Inventory "
-    # "SET quantity = quantity - 10 "
-    # "WHERE product like '%washer%'"
-    #    self.insert_records_in_batches(self.jobs_table, [record])
+    def update_job_end(self, job_id:str, job_end:str):
+        """
+        BQ requires us to wait 30 mins before updating a record.
+        So we will encounter an error on shorter jobs, but (hopefully) not on longer running ones.
+        So try to store the end time anyway, and gracefully fail if we encounter an error.
+        It's OK.
+        See: https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language
+        """
+        sql = f"""
+            UPDATE `{self.dataset_address}.jobs`
+            SET job_end = '{job_end}'
+            WHERE job_id = '{job_id}'
+        """
+        try:
+            self.execute_query(sql)
+        except Exception as err:
+            print(err)
+
 
     def save_domains(self, records):
         self.insert_records_in_batches(self.domains_table, records)
@@ -191,6 +202,7 @@ class BigQueryDatabase(BigQueryService):
             sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.tweets`; "
         sql += f"""
             CREATE TABLE IF NOT EXISTS `{self.dataset_address}.tweets` (
+                job_id INT64,
                 status_id INT64,
                 status_text STRING,
                 created_at TIMESTAMP,

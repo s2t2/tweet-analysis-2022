@@ -50,7 +50,7 @@ class ParsedResponse(SimpleNamespace):
 
     @cached_property
     def metrics_log(self):
-        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | URLS: {len(self.status_urls)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} ST-M: {len(self.status_media)}"
+        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | URLS: {len(self.status_urls)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} STAT-MED: {len(self.status_media)}"
 
 
 class Job:
