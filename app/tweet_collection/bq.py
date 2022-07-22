@@ -9,15 +9,23 @@ DATASET_ADDRESS = os.getenv("DATASET_ADDRESS", default="tweet-collector-py.jan6_
 
 class BigQueryDatabase(BigQueryService):
 
-    # NOTE: we do want to use cached properties for the tables...
-    # ... however we saw some issues the first time after running migrations
-    # ... that the old values were being erroneously referenced
-    # ... and the tables were None
-
     def __init__(self, dataset_address=DATASET_ADDRESS, client=None):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
+    # NOTE: we saw some issues the first time after running migrations
+    # ... that the new tables are not recognized the first time we try to get them
+    # ... this is an issue with BQ needing time to propogate the table reference for newly created tables?
+    # can just wait a few minutes after migrating?
+
+    #def touch_migrated_tables(self):
+    #    table_names = [
+    #        "jobs", "tweets", "media",
+    #        "status_annotations", "status_entities", "status_media", "status_mentions", "status_urls"
+    #    ]
+    #    for table_name in table_names:
+    #        sql = f"SELECT count(*) FROM `{self.dataset_address}.{table_name}`; "
+    #        self.execute_query(sql)
 
     @cached_property
     def jobs_table(self):
