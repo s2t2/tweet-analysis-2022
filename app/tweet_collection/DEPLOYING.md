@@ -59,14 +59,9 @@ heroku config:set QUERY="lang:en #january6thcommittee"
 
 ## Process Management
 
-Todo: add Procfile:
+Add an entry for the `tweet_collection_job` to the Procfile (see Procfile).
 
-```sh
-# this is the "Procfile":
-tweet_collection_job: python -m app.tweet_collection.job
-```
-
-Todo: setup dyno for the `tweet_collection_job`.
+Setup dyno for the `tweet_collection_job`.
 
 
 ## Deploying
