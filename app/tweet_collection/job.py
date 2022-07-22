@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from tweepy import Paginator
 from pandas import DataFrame, concat
 
+from app import server_sleep
 from app.twitter_service import twitter_api_client
 from app.tweet_collection.db import CollectionDatabase
 from app.tweet_collection.bq import BigQueryDatabase
@@ -401,3 +402,5 @@ if __name__ == "__main__":
         job.db.save_status_media(pr.status_media)
         job.db.save_status_entities(pr.status_entities)
         job.db.save_status_urls(pr.status_urls)
+
+    server_sleep()
