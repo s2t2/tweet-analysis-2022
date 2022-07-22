@@ -442,9 +442,15 @@ class Job:
 
 if __name__ == "__main__":
 
+    from app.email_service import send_email
+
     job = Job()
 
     job.perform()
 
-    # todo: send email
+    send_email(subject="[Tweet Collection Job Complete]", html=f"""
+        <h3>Job Complete!</h3>
+        <p>Job Id: <pre>{job.job_id}</pre> </p>
+        <p>Job Metadata: <pre>{job.metadata}</pre> </p>
+    """)
     server_sleep()
