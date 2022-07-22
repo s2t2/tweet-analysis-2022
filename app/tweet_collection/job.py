@@ -439,7 +439,7 @@ class Job:
             self.db.save_status_urls(pr.status_urls)
 
         self.job_end = datetime.now()
-        # todo: update job record
+        self.db.update_job_end(self.job_id, str(self.job_end))
 
 
 if __name__ == "__main__":

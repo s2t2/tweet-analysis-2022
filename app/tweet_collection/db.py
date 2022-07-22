@@ -111,6 +111,16 @@ class CollectionDatabase:
     def save_job_metadata(self, record):
         self.insert_data("jobs", [record])
 
+    def update_job_end(self, job_id:str, job_end:str):
+        sql = f"""
+            UPDATE jobs
+            SET job_end = '{job_end}'
+            WHERE
+                job_id = '{job_id}';
+        """
+        self.cursor.execute(sql)
+        self.connection.commit()
+
     def save_domains(self, records):
         self.insert_data("domains", records)
 
