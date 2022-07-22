@@ -7,6 +7,7 @@ import os
 from pprint import pprint
 from types import SimpleNamespace
 from functools import cached_property
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from tweepy import Paginator
@@ -53,7 +54,7 @@ class ParsedResponse(SimpleNamespace):
 
 
 class Job:
-    def __init__(self, storage_mode=STORAGE_MODE):
+    def __init__(self, storage_mode=STORAGE_MODE, query=QUERY, start_date=START_DATE, end_date=END_DATE, max_results=MAX_RESULTS, page_limit=PAGE_LIMIT):
         self.storage_mode = storage_mode
 
         if self.storage_mode == "sqlite":
@@ -64,7 +65,41 @@ class Job:
             raise AttributeError("oops wrong storage mode")
 
 
-    def fetch_tweets(self, query=QUERY, start_date=START_DATE, end_date=END_DATE, max_results=MAX_RESULTS, limit=PAGE_LIMIT):
+        self.job_id = str(uuid4())
+        self.query=query
+        self.start_date=start_date
+        self.end_date=end_date
+        self.max_results=max_results
+        self.page_limit=page_limit
+
+        self.job_start = None
+        self.job_end = None
+
+    @property
+    def metadata(self):
+        job_start = self.job_start
+        if job_start:
+            job_start = str(job_start)
+
+        job_end = self.job_end
+        if job_end:
+            job_start = str(job_end)
+
+        return {
+            "job_id": self.job_id,
+
+            "query": self.query,
+            "start_date": self.start_date,
+            "end_date": self.end_date,
+            "max_results": self.max_results,
+            "page_limit": self.page_limit,
+
+            "job_start": job_start,
+            "job_end": job_end,
+        }
+
+
+    def fetch_tweets(self):
         """
         Params
             query (str) : '#COP26 lang:en'
@@ -84,8 +119,8 @@ class Job:
 
         # start at beginning of day, end at end of day
         formatting_template = '%Y-%m-%d %H:%M:%S'
-        start_time = datetime.strptime(f"{start_date} 00:00:00", formatting_template)
-        end_time = datetime.strptime(f"{end_date} 23:59:59", formatting_template)
+        start_time = datetime.strptime(f"{self.start_date} 00:00:00", formatting_template)
+        end_time = datetime.strptime(f"{self.end_date} 23:59:59", formatting_template)
 
         # https://developer.twitter.com/en/docs/twitter-api/tweets/search/api-reference/get-tweets-search-all
         #return client.search_all_tweets(query=query,
@@ -100,7 +135,7 @@ class Job:
         #)
 
         request_params = dict(
-            query=query,
+            query=self.query,
             expansions=[
                 'author_id',
                 'attachments.media_keys',
@@ -113,13 +148,13 @@ class Job:
             tweet_fields=['created_at', 'entities', 'context_annotations'],
             media_fields=['url', 'preview_image_url'],
             user_fields=['verified', 'created_at'],
-            max_results=max_results,
+            max_results=self.max_results,
             start_time=start_time,
             end_time=end_time
         )
         args = {}
-        if limit:
-            args["limit"] = int(limit)
+        if self.page_limit:
+            args["limit"] = int(self.page_limit)
         #return Paginator(client.search_all_tweets, limit=limit, **request_params)
         return Paginator(client.search_all_tweets, **args, **request_params)
 
@@ -236,6 +271,7 @@ class Job:
                             quote_user_id = original.author_id
 
             tweet_records.append({
+                "job_id": self.job_id,
                 "status_id": tweet.id,
                 "status_text": full_text,
                 "created_at": tweet.created_at,
@@ -379,28 +415,38 @@ class Job:
         )
 
 
+    def perform(self):
+        self.job_start = datetime.now()
+        self.db.save_job_metadata(job.metadata)
+
+        page_counter = 0
+        for response in self.fetch_tweets():
+            page_counter+=1
+            print("PAGE:", page_counter)
+            #tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
+            pr = self.parse_response(response)
+            #print(pr)
+            #print(pr.metrics)
+            print(pr.metrics_log)
+
+            self.db.save_tweets(pr.tweets)
+            self.db.save_status_tags(pr.status_tags)
+            self.db.save_status_mentions(pr.status_mentions)
+            self.db.save_status_annotations(pr.status_annotations)
+            self.db.save_media(pr.media)
+            self.db.save_status_media(pr.status_media)
+            self.db.save_status_entities(pr.status_entities)
+            self.db.save_status_urls(pr.status_urls)
+
+        self.job_end = datetime.now()
+        # todo: update job record
+
 
 if __name__ == "__main__":
 
     job = Job()
 
-    page_counter = 0
-    for response in job.fetch_tweets():
-        page_counter+=1
-        print("PAGE:", page_counter)
-        #tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
-        pr = job.parse_response(response)
-        #print(pr)
-        #print(pr.metrics)
-        print(pr.metrics_log)
+    job.perform()
 
-        job.db.save_tweets(pr.tweets)
-        job.db.save_status_tags(pr.status_tags)
-        job.db.save_status_mentions(pr.status_mentions)
-        job.db.save_status_annotations(pr.status_annotations)
-        job.db.save_media(pr.media)
-        job.db.save_status_media(pr.status_media)
-        job.db.save_status_entities(pr.status_entities)
-        job.db.save_status_urls(pr.status_urls)
-
+    # todo: send email
     server_sleep()

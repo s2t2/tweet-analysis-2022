@@ -20,6 +20,10 @@ class BigQueryDatabase(BigQueryService):
 
 
     @cached_property
+    def jobs_table(self):
+        return self.client.get_table(f"{self.dataset_address}.jobs")
+
+    @cached_property
     def domains_table(self):
         """consider calling this context_domains"""
         return self.client.get_table(f"{self.dataset_address}.domains")
@@ -65,6 +69,17 @@ class BigQueryDatabase(BigQueryService):
     # SAVE RECORDS
     #
 
+    def save_job_metadata(self, record):
+        self.insert_records_in_batches(self.jobs_table, [record])
+
+    #def update_job_metadata(self, record):
+    # todo: add end time to job record
+    # BQ SQL
+    # "UPDATE dataset.Inventory "
+    # "SET quantity = quantity - 10 "
+    # "WHERE product like '%washer%'"
+    #    self.insert_records_in_batches(self.jobs_table, [record])
+
     def save_domains(self, records):
         self.insert_records_in_batches(self.domains_table, records)
 
@@ -99,6 +114,27 @@ class BigQueryDatabase(BigQueryService):
     # MIGRATE TABLES
     # ... https://cloud.google.com/bigquery/docs/reference/standard-sql/data-types
     #
+
+    def migrate_jobs_table(self, destructive=False):
+        """WARNING! USE WITH EXTREME CAUTION!"""
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.jobs`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.jobs` (
+                job_id STRING,
+
+                query STRING,
+                start_date STRING,
+                end_date STRING,
+                max_results INT64,
+                page_limit INT64,
+
+                job_start TIMESTAMP,
+                job_end TIMESTAMP,
+            );
+        """
+        self.execute_query(sql)
 
     def migrate_domains_table(self, destructive=False):
         """WARNING! USE WITH EXTREME CAUTION!"""
