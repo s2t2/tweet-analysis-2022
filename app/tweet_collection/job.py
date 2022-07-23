@@ -61,7 +61,6 @@ class Job:
             self.db = CollectionDatabase(destructive=True) # todo: move migration process earlier if desired
         elif self.storage_mode == "bq":
             self.db = BigQueryDatabase()
-            #self.db.touch_migrated_tables()
         else:
             raise AttributeError("oops wrong storage mode")
 

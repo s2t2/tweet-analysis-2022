@@ -13,19 +13,14 @@ class BigQueryDatabase(BigQueryService):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
+    #
+    # TABLES
+    #
     # NOTE: we saw some issues the first time after running migrations
     # ... that the new tables are not recognized the first time we try to get them
     # ... this is an issue with BQ needing time to propogate the table reference for newly created tables?
-    # can just wait a few minutes after migrating?
-
-    #def touch_migrated_tables(self):
-    #    table_names = [
-    #        "jobs", "tweets", "media",
-    #        "status_annotations", "status_entities", "status_media", "status_mentions", "status_urls"
-    #    ]
-    #    for table_name in table_names:
-    #        sql = f"SELECT count(*) FROM `{self.dataset_address}.{table_name}`; "
-    #        self.execute_query(sql)
+    # ... can just wait a few minutes after migrating?
+    #
 
     @cached_property
     def jobs_table(self):
