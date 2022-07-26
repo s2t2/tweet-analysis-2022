@@ -75,6 +75,14 @@ class Job:
         self.job_start = None
         self.job_end = None
 
+        print("------------------")
+        print("JOB...")
+        print("QUERY:", self.query)
+        print("START DATE:", self.start_date)
+        print("END DATE:", self.end_date)
+
+
+
     @staticmethod
     def serializable(val):
         if val:
@@ -442,6 +450,7 @@ class Job:
 if __name__ == "__main__":
 
     from app.email_service import send_email
+    from app import SERVER_NAME
 
     job = Job()
 
@@ -449,6 +458,7 @@ if __name__ == "__main__":
 
     send_email(subject="[Tweet Collection Job Complete]", html=f"""
         <h3>Job Complete!</h3>
+        <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
         <p>Job Id: <pre>{job.job_id}</pre> </p>
         <p>Job Metadata: <pre>{job.metadata}</pre> </p>
     """)
