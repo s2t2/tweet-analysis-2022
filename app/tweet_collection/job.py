@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from tweepy import Paginator
 from pandas import DataFrame, concat
 
-from app import server_sleep
+from app import server_sleep, APP_ENV
 from app.twitter_service import twitter_api_client
 from app.tweet_collection.db import CollectionDatabase
 from app.tweet_collection.bq import BigQueryDatabase
@@ -50,7 +50,7 @@ class ParsedResponse(SimpleNamespace):
 
     @cached_property
     def metrics_log(self):
-        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | URLS: {len(self.status_urls)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.media)} STAT-MED: {len(self.status_media)}"
+        return f"... TWEETS: {len(self.tweets)} | MENTIONS: {len(self.status_mentions)} | TAGS: {len(self.status_tags)} | ANNOTATIONS: {len(self.status_annotations)} | URLS: {len(self.status_urls)} | ENTITIES: {len(self.status_entities)} | MEDIA: {len(self.status_media)}"
 
 
 class Job:
@@ -456,10 +456,11 @@ if __name__ == "__main__":
 
     job.perform()
 
-    send_email(subject="[Tweet Collection Job Complete]", html=f"""
-        <h3>Job Complete!</h3>
-        <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
-        <p>Job Id: <pre>{job.job_id}</pre> </p>
-        <p>Job Metadata: <pre>{job.metadata}</pre> </p>
-    """)
+    if APP_ENV == "production":
+        send_email(subject="[Tweet Collection Job Complete]", html=f"""
+            <h3>Job Complete!</h3>
+            <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
+            <p>Job Id: <pre>{job.job_id}</pre> </p>
+            <p>Job Metadata: <pre>{job.metadata}</pre> </p>
+        """)
     server_sleep()
