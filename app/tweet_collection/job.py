@@ -174,9 +174,9 @@ class Job:
         status_entity_records = []
         url_records = []
 
-        users = response.includes["users"]
+        users = response.includes.get("users") or []
         media = response.includes.get("media") or []
-        tweets = response.includes["tweets"]
+        tweets = response.includes.get("tweets") or []
 
         #
         # MEDIA
@@ -221,15 +221,22 @@ class Job:
             "width": m.get("width"),
         } for m in media]
 
-
-
-
         #print("MEDIA:")
         #pprint(media_records)
 
         for tweet in response.data:
             user_id = tweet.author_id
-            user = [user for user in users if user.id == user_id][0]
+            try:
+                user = [user for user in users if user.id == user_id][0]
+                user_screen_name = user.username
+                user_name = user.name
+                user_created_at = user.created_at
+                user_verified = user.verified
+            except IndexError:
+                user_screen_name = None
+                user_name = None
+                user_created_at = None
+                user_verified = None
 
             full_text = tweet.text
 
@@ -249,7 +256,7 @@ class Job:
                     try:
                         original = [tweet for tweet in tweets if tweet.id == ref_id][0]
                     except Exception as err:
-                        print(err, "original tweet not found. will need to look it up later.") #> list index out of range
+                        #print(err, "original tweet not found. will need to look it up later.") #> list index out of range
                         original = None
 
                     if ref_type == "retweeted":
@@ -277,14 +284,17 @@ class Job:
 
             tweet_records.append({
                 "job_id": self.job_id,
+                # tweet info
                 "status_id": tweet.id,
                 "status_text": full_text,
                 "created_at": tweet.created_at,
+                # user info
                 "user_id": user_id,
-                "user_screen_name":user.username,
-                "user_name": user.name,
-                "user_created_at": user.created_at,
-                "user_verified": user.verified,
+                "user_screen_name": user_screen_name,
+                "user_name": user_name,
+                "user_created_at": user_created_at,
+                "user_verified": user_verified,
+                #
                 "retweet_status_id": retweet_status_id,
                 "retweet_user_id": retweet_user_id,
                 "reply_status_id": reply_status_id,
