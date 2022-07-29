@@ -464,13 +464,25 @@ if __name__ == "__main__":
 
     job = Job()
 
-    job.perform()
+    try:
+        job.perform()
 
-    if APP_ENV == "production":
-        send_email(subject="[Tweet Collection Job Complete]", html=f"""
-            <h3>Job Complete!</h3>
-            <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
-            <p>Job Id: <pre>{job.job_id}</pre> </p>
-            <p>Job Metadata: <pre>{job.metadata}</pre> </p>
-        """)
+        if APP_ENV == "production":
+            send_email(subject="[Tweet Collection Job Complete]", html=f"""
+                <h3>Job Complete!</h3>
+                <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
+                <p>Job Id: <pre>{job.job_id}</pre> </p>
+                <p>Job Metadata: <pre>{job.metadata}</pre> </p>
+            """)
+    except Exception as err:
+        print("OOPS", err)
+        if APP_ENV == "production":
+            send_email(subject="[Tweet Collection Job Error]", html=f"""
+                <h3>Job Error</h3>
+                <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
+                <p>Job Id: <pre>{job.job_id}</pre> </p>
+                <p>Job Error: <pre>{err}</pre> </p>
+                <p>Job Metadata: <pre>{job.metadata}</pre> </p>
+            """)
+
     server_sleep()
