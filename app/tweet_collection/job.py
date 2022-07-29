@@ -75,6 +75,7 @@ class Job:
         self.job_start = None
         self.job_end = None
         self.page_counter = 0
+        self.error_message = None
 
         print("------------------")
         print("JOB...")
@@ -103,6 +104,7 @@ class Job:
             "job_start": self.serializable(self.job_start),
             "job_end": self.serializable(self.job_end),
             "page_counter": self.page_counter,
+            "error_message": self.error_message,
         }
 
 
@@ -476,8 +478,12 @@ if __name__ == "__main__":
                 <p>Job Id: <pre>{job.job_id}</pre> </p>
                 <p>Job Metadata: <pre>{job.metadata}</pre> </p>
             """)
+
     except Exception as err:
-        print("OOPS", err)
+        print("OOPS", err.__class__.__name__, err)
+        job.error_message = f"{err.__class__.__name__} - {err}"
+        job.db.update_job_error(job.job_id, job.error_message)
+
         if APP_ENV == "production":
             send_email(subject="[Tweet Collection Job Error]", html=f"""
                 <h3>Job Error</h3>

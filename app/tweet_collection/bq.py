@@ -94,6 +94,16 @@ class BigQueryDatabase(BigQueryService):
         except Exception as err:
             print(err)
 
+    def update_job_error(self, job_id:str, error_message:str):
+        sql = f"""
+            UPDATE `{self.dataset_address}.jobs`
+            SET error_message = '{error_message}'
+            WHERE job_id = '{job_id}'
+        """
+        try:
+            self.execute_query(sql)
+        except Exception as err:
+            print(err)
 
     def save_domains(self, records):
         self.insert_records_in_batches(self.domains_table, records)

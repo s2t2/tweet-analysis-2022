@@ -122,6 +122,16 @@ class CollectionDatabase:
         self.cursor.execute(sql)
         self.connection.commit()
 
+    def update_job_error(self, job_id:str, error_message:str):
+        sql = f"""
+            UPDATE jobs
+            SET error_message = '{error_message}'
+            WHERE
+                job_id = '{job_id}';
+        """
+        self.cursor.execute(sql)
+        self.connection.commit()
+
     def save_domains(self, records):
         self.insert_data("domains", records)
 
