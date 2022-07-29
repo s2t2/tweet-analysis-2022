@@ -226,6 +226,11 @@ class Job:
         #print("MEDIA:")
         #pprint(media_records)
 
+        if not response.data:
+            print("NO RESPONSE DATA!?")
+            # or maybe raise?
+            return None
+
         for tweet in response.data:
             user_id = tweet.author_id
             try:
@@ -363,7 +368,7 @@ class Job:
             #
 
             attachments = tweet.attachments
-            if attachments:
+            if attachments and attachments["media_keys"]:
                 #
                 # MEDIA
                 #
@@ -442,18 +447,19 @@ class Job:
             print("PAGE:", self.page_counter)
             #tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
             pr = self.parse_response(response)
-            #print(pr)
-            #print(pr.metrics)
-            print(pr.metrics_log)
+            if pr:
+                #print(pr)
+                #print(pr.metrics)
+                print(pr.metrics_log)
 
-            self.db.save_tweets(pr.tweets)
-            self.db.save_status_tags(pr.status_tags)
-            self.db.save_status_mentions(pr.status_mentions)
-            self.db.save_status_annotations(pr.status_annotations)
-            self.db.save_media(pr.media)
-            self.db.save_status_media(pr.status_media)
-            self.db.save_status_entities(pr.status_entities)
-            self.db.save_status_urls(pr.status_urls)
+                self.db.save_tweets(pr.tweets)
+                self.db.save_status_tags(pr.status_tags)
+                self.db.save_status_mentions(pr.status_mentions)
+                self.db.save_status_annotations(pr.status_annotations)
+                self.db.save_media(pr.media)
+                self.db.save_status_media(pr.status_media)
+                self.db.save_status_entities(pr.status_entities)
+                self.db.save_status_urls(pr.status_urls)
 
         self.job_end = datetime.now()
         self.db.update_job_end(self.job_id, str(self.job_end), self.page_counter)
