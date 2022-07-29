@@ -74,6 +74,7 @@ class Job:
 
         self.job_start = None
         self.job_end = None
+        self.page_counter = 0
 
         print("------------------")
         print("JOB...")
@@ -101,6 +102,7 @@ class Job:
 
             "job_start": self.serializable(self.job_start),
             "job_end": self.serializable(self.job_end),
+            "page_counter": self.page_counter,
         }
 
 
@@ -432,12 +434,12 @@ class Job:
 
     def perform(self):
         self.job_start = datetime.now()
-        self.db.save_job_metadata(job.metadata)
+        self.db.save_job_metadata(self.metadata)
 
-        page_counter = 0
+        self.page_counter = 0
         for response in self.fetch_tweets():
-            page_counter+=1
-            print("PAGE:", page_counter)
+            self.page_counter+=1
+            print("PAGE:", self.page_counter)
             #tweets, tags, mentions, annotations, media, status_media, status_entities = job.parse_response(response)
             pr = self.parse_response(response)
             #print(pr)
@@ -454,7 +456,7 @@ class Job:
             self.db.save_status_urls(pr.status_urls)
 
         self.job_end = datetime.now()
-        self.db.update_job_end(self.job_id, str(self.job_end))
+        self.db.update_job_end(self.job_id, str(self.job_end), self.page_counter)
 
 
 if __name__ == "__main__":
