@@ -480,6 +480,7 @@ if __name__ == "__main__":
                 <h3>Job Complete!</h3>
                 <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
                 <p>Job Id: <pre>{job.job_id}</pre> </p>
+                <p>Query: <pre>{job.query}</pre> </p>
                 <p>Job Metadata: <pre>{job.metadata}</pre> </p>
             """)
     except Exception as err:
@@ -489,6 +490,7 @@ if __name__ == "__main__":
                 <h3>Job Error</h3>
                 <p>Server Name: <pre>{SERVER_NAME}</pre> </p>
                 <p>Job Id: <pre>{job.job_id}</pre> </p>
+                <p>Query: <pre>{job.query}</pre> </p>
                 <p>Job Error: <pre>{err}</pre> </p>
                 <p>Job Metadata: <pre>{job.metadata}</pre> </p>
             """)
