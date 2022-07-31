@@ -51,7 +51,6 @@ class Job:
         with open(local_filepath, "wb") as media_file:
             media_file.write(response.content)
 
-
     def perform(self):
         for row in self.db.get_downloadable_media():
             media_key = row["media_key"]
@@ -61,33 +60,26 @@ class Job:
 
             print(f"{media_type.upper()} {media_key}...")
 
-            # MEDIA
             if media_url:
-                #filename = f"{media_type}_{media_key}_media.jpg"
-                filename = f"{media_key}_media.jpg"
-                print("... DOWNLOADING ...", filename)
-                local_filepath = os.path.join(MEDIA_DIR, filename)
-                self.download_media(url=media_url, local_filepath=local_filepath)
+                filename = f"{media_key}.jpg"
+                self.process_media(media_key=media_key, media_url=media_url, filename=filename)
 
-                if self.media_store:
-                    remote_filepath = os.path.join("media", filename)
-                    print("... UPLOADING ...", remote_filepath)
-                    self.media_store.upload(local_filepath=local_filepath, remote_filepath=remote_filepath)
-
-            # PREVIEW
             if preview_url:
-                #filename = f"{media_type}_{media_key}_preview.jpg"
                 filename = f"{media_key}_preview.jpg"
-                print("... DOWNLOADING ...", filename)
-                local_filepath = os.path.join(MEDIA_DIR, filename)
-                self.download_media(url=preview_url, local_filepath=local_filepath)
-
-                if self.media_store:
-                    remote_filepath = os.path.join("media", filename)
-                    print("... UPLOADING ...", remote_filepath)
-                    self.media_store.upload(local_filepath=local_filepath, remote_filepath=remote_filepath)
+                self.process_media(media_key=media_key, media_url=preview_url, filename=filename)
 
 
+    def process_media(self, media_key, media_url, filename=None):
+        filename = filename or f"{media_key}.jpg"
+        print("... DOWNLOADING ...", filename)
+
+        local_filepath = os.path.join(MEDIA_DIR, filename)
+        self.download_media(url=media_url, local_filepath=local_filepath)
+
+        if self.media_store:
+            remote_filepath = os.path.join("media", filename)
+            print("... UPLOADING ...", remote_filepath)
+            self.media_store.upload(local_filepath=local_filepath, remote_filepath=remote_filepath)
 
 
 if __name__ == "__main__":
