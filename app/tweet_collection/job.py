@@ -368,11 +368,12 @@ class Job:
             #
 
             attachments = tweet.attachments
-            if attachments and attachments["media_keys"]:
+            if attachments:
                 #
                 # MEDIA
                 #
-                media_keys = [{"status_id": tweet.id, "media_key": mk} for mk in attachments["media_keys"]]
+                media_keys = attachments.get("media_keys") or []
+                media_keys = [{"status_id": tweet.id, "media_key": mk} for mk in media_keys]
                 #print("MEDIA KEYS:", media_keys)
                 status_media_records += media_keys
 
