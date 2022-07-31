@@ -84,3 +84,8 @@ Demonstrate ability to send email:
 ```sh
 python -m app.email_service
 ```
+
+### Steps
+
+  + [Tweet Collection](app/tweet_collection/README.md)
+  + [Media Collection](app/media_collection/README.md)
