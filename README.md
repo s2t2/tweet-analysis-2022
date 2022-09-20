@@ -61,14 +61,19 @@ The `DATASET_ADDRESS` environment variable will be a namespaced combination of t
 
 If this is your first time setting up the database, also run the migrations to create the tables:
 
+For search / retroactive collection:
+
 ```sh
 # WARNING!!! USE WITH CAUTION!!!
-
-# python -m app.tweet_collection.bq_migrations
-
 DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_collection.bq_migrations
 ```
 
+For stream listening / realtime collection:
+
+```sh
+# WARNING!!! USE WITH CAUTION!!!
+DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.bq_migrations
+```
 
 
 

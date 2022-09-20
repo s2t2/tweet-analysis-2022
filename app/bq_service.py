@@ -36,11 +36,11 @@ class BigQueryService():
         for i in range(0, len(my_list), batch_size):
             yield my_list[i : i + batch_size]
 
-    #@classmethod
-    #def generate_timestamp(dt=None):
-    #    """Formats datetime object for storing in BigQuery. Uses current time by default. """
-    #    dt = dt or datetime.now()
-    #    return dt.strftime("%Y-%m-%d %H:%M:%S")
+    @classmethod
+    def generate_timestamp(dt=None):
+        """Formats datetime object for storing in BigQuery. Uses current time by default. """
+        dt = dt or datetime.now()
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     def insert_records_in_batches(self, table, records):
         """

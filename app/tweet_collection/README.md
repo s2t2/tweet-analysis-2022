@@ -1,4 +1,4 @@
-# Tweet Collection (2022)
+# Tweet Collection (Search)
 
 ## Setup
 
