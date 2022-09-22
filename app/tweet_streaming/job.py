@@ -86,7 +86,54 @@ class MyClient(StreamingClient):
         # 'attachments',  'context_annotations', 'entities',
         # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
 
-        breakpoint()
+        # WE ARE WORKING WITH SOMETHING LIKE THIS:
+        #
+        #>{
+        #>    'attachments': {},
+        #>    'author_id': '1188503073175560192',
+        #>    'context_annotations': [
+        #>        {
+        #>            'domain': {'id': '10', 'name': 'Person', 'description': 'Named people in the world like Nelson Mandela'},
+        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
+        #>        },
+        #>        {
+        #>            'domain': {'id': '35', 'name': 'Politician', 'description': 'Politicians in the world, like Joe Biden'},
+        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
+        #>        },
+        #>        {
+        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
+        #>            'entity': {'id': '847878884917886977', 'name': 'Politics', 'description': 'Politics'}
+        #>        },
+        #>        {
+        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
+        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
+        #>        },
+        #>        {
+        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
+        #>            'entity': {'id': '1070032753834438656', 'name': 'Political figures', 'description': 'Politician'}
+        #>        }
+        #>    ],
+        #>    'created_at': '2022-09-22T21:38:30.000Z',
+        #>    'entities': {
+        #>        'annotations': [
+        #>            {'start': 27, 'end': 40, 'probability': 0.9801, 'type': 'Person', 'normalized_text': 'Anika Navaroli'}
+        #>        ],
+        #>        'mentions': [
+        #>            {'start': 0, 'end': 10, 'username': 'RepRaskin', 'id': '806906355214852096'},
+        #>            {'start': 11, 'end': 26, 'username': 'January6thCmte', 'id': '1415384176593883137'}
+        #>        ]
+        #>    },
+        #>    'geo': {},
+        #>    'id': '1573064219926339584',
+        #>    'referenced_tweets': [
+        #>        {'type': 'replied_to', 'id': '1573033231976464387'}
+        #>    ],
+        #>    'text': '@RepRaskin @January6thCmte Anika Navaroli is a very brave and patriotic person! I thank her for trying!'
+        #>}
+        # WITH ATTACHMENTS:  'attachments': {'media_keys': ['13_963799572161101824']}
+
+        print(tweet.id, tweet.text)
+
 
     def on_includes(self, includes):
         """This is called when includes are received."""
@@ -95,6 +142,14 @@ class MyClient(StreamingClient):
         print(type(includes)) #> dict
         print(includes)
         #breakpoint()
+        #> {
+        #>     'users': [
+        #>         <User id=734791975 name=Deb2 username=deb2_debra>,
+        #>         <User id=165185845 name=Claudia Maheux 🇨🇦 username=claudiacm1146>],
+        #>     'tweets': [
+        #>         <Tweet id=1573037573425053703 text='Oh my! Heads are going to roll! #Jan6 #Jan6th #Jan6thInsurrection #GOP\nhttps://t.co/oLEJpp6qgq'>
+        #>     ]
+        #> }
 
     def on_errors(self, errors):
         """This is called when errors are received."""
@@ -109,6 +164,8 @@ class MyClient(StreamingClient):
         print("ON MATCHING RULES!")
         print(matching_rules)
         #breakpoint()
+        #> [StreamRule(value=None, tag='', id='1573058221656375301'), StreamRule(value=None, tag='', id='1573064191111577601')]
+        # WEIRD THAT THE VALUES ARE NULL?
 
     #
     # ERROR HANDLING
@@ -117,13 +174,13 @@ class MyClient(StreamingClient):
     def on_close(self):
         print("-----------")
         print("ON CLOSE!")
-        breakpoint()
+        #breakpoint()
 
     def on_connection_error(self):
         print("-----------")
         print("ON CONNECTION ERROR!")
-        breakpoint()
-        self.disconnect()
+        #breakpoint()
+        #self.disconnect()
 
 
 
@@ -149,6 +206,7 @@ if __name__ == "__main__":
     #   `grumpy OR cat OR #meme` will match any Tweets containing at least the terms grumpy or cat, or the hashtag #meme.
     #   `cat #meme -grumpy` ... will match Tweets containing the hashtag #meme and the term cat, but only if they do not contain the term grumpy.
     #   `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
+    print("RULES:")
     rules = [
         StreamRule("@January6thCmte lang:en"), # lang:en
         StreamRule("#January6Committe lang:en"),
@@ -162,15 +220,32 @@ if __name__ == "__main__":
     # go listen for tweets matching the specified rules
     # https://github.com/tweepy/tweepy/blob/9b636bc529687dbd993bb1aef0177ee78afdabec/tweepy/streaming.py#L553
 
-    stream_params = dict(backfill_minutes=5,
-        expansions=[],
-        media_fields=[],
-        place_fields=[],
-        poll_fields=[],
-        tweet_filelds=[],
-        user_fields=[],
-        threaded=False
+    #stream_params = dict(backfill_minutes=5,
+    #    expansions=[],
+    #    media_fields=[],
+    #    place_fields=[],
+    #    poll_fields=[],
+    #    tweet_filelds=[],
+    #    user_fields=[],
+    #    threaded=False
+    #)
+
+    # using similar params as our search collection script:
+    stream_params = dict(
+        expansions=[
+            'author_id',
+            'attachments.media_keys',
+            'referenced_tweets.id',
+            'referenced_tweets.id.author_id',
+            #'in_reply_to_user_id',
+            'geo.place_id',
+            'entities.mentions.username'
+        ],
+        tweet_fields=['created_at', 'entities', 'context_annotations'],
+        media_fields=['url', 'preview_image_url'],
+        user_fields=['verified', 'created_at'],
     )
+
     # Streams about 1% of all Tweets in real-time.
     #client.sample()
     #client.sample(**stream_params)
