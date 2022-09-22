@@ -1,177 +1,180 @@
-#
-# ADAPTED FROM: https://github.com/s2t2/tweet-analysis-2020/blob/main/app/tweet_collection_v2/stream_listener.py
-#
-
-import os
-from pprint import pprint
-from time import sleep
-
-from dotenv import load_dotenv
-from tweepy.streaming import StreamingClient #StreamListener
-from tweepy import Stream
-from urllib3.exceptions import ProtocolError
-
-from app import seek_confirmation
-from app.twitter_service import TWITTER_BEARER_TOKEN # twitter_api_client # TwitterService
-#from app.bq_service import BigQueryService #, generate_timestamp
-#from app.tweet_collection_v2.csv_storage import LocalStorageService
-#from app.tweet_collection_v2.tweet_parser import parse_status
-from app.tweet_streaming.csv_storage import LocalStorage
-from app.tweet_streaming.bq_storage import BigQueryStorage
-
-load_dotenv()
-
-STORAGE_ENV = os.getenv("STORAGE_ENV", default="local") # "local" OR "remote"
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="20"))
 
 
-def parse_status(status):
-    breakpoint()
-    return status._json
+#from pprint import pprint
+#from time import sleep
+
+from tweepy.streaming import StreamingClient
+from tweepy import StreamRule
+#from urllib3.exceptions import ProtocolError
+
+#from app import seek_confirmation
+from app.twitter_service import TWITTER_BEARER_TOKEN
 
 
+class MyClient(StreamingClient):
+    """
+    The filtered stream deliver Tweets to you in real-time that match on a set of rules.
+    Rules are made up of operators that are used to match on a variety of Tweet attributes.
+    Multiple rules can be applied to a stream using the POST /tweets/search/stream/rules endpoint.
+    Once you've added rules and connect to your stream using the GET /tweets/search/stream endpoint,
+        only those Tweets that match your rules will be delivered in real-time through a persistent streaming connection.
+        You do not need to disconnect from your stream to add or remove rules.
 
-class TopicResetEvent(Exception):
-    pass
+    See:
+        https://docs.tweepy.org/en/stable/streaming.html#using-streamingclient
+        https://docs.tweepy.org/en/stable/streamingclient.html#tweepy.StreamingClient
 
-# https://docs.tweepy.org/en/v4.10.1/stream.html
+    Data received from the stream is passed to on_data().
+    This method handles sending the data to other methods.
+        Tweets recieved are sent to on_tweet(),
+        includes data are sent to on_includes(),
+        errors are sent to on_errors(), and
+        matching rules are sent to on_matching_rules().
 
-#class TweetCollector(StreamListener):
-class TwitterStreamListener(StreamingClient):
+    A StreamResponse instance containing all four fields is sent to on_response().
+    By default, only on_response() logs the data received, at the DEBUG logging level.
 
-    #def __init__(self, twitter_service=None, storage_env=STORAGE_ENV, bq_service=None, csv_service=None, batch_size=BATCH_SIZE):
-    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, storage_env=STORAGE_ENV, batch_size=BATCH_SIZE):
-        #self.api = twitter_api_client()
-        #self.auth = self.api.auth
-        self.bearer_token = bearer_token
-        self.parse_status = parse_status
+    Errors:
+        on_closed() is called when the stream is closed by Twitter.
+        on_connection_error() is called when the stream encounters a connection error.
+        on_request_error() is called when an error is encountered while trying to connect to the stream.
+        on_request_error() is also passed the HTTP status code that was encountered.
+        The HTTP status codes reference for the Twitter API can be found at https://developer.twitter.com/en/support/twitter-api/error-troubleshooting.
+    """
 
-        self.storage_env = storage_env.lower()
-        if self.storage_env in ["local", "csv"]:
-            self.storage = LocalStorage()
-        elif self.storage_env in ["remote", "bq"]:
-            self.storage = BigQueryStorage()
-        else:
-            raise ValueError("Expecting the STORAGE_ENV to be 'local' or 'remote'. Please try again...")
+    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True):
+        # todo: also consider passing max_retries
+        super().__init__(bearer_token=bearer_token, wait_on_rate_limit=wait_on_rate_limit)
 
-        self.batch_size = batch_size
-        self.batch = []
-        self.counter = 0
+        print("-----------")
+        print("STREAMING CLIENT!")
+        print("  RUNNING:", self.running)
+        print("  SESSION:", self.session)
+        print("  THREAD:", self.thread)
+        print("  USER AGENT:", self.user_agent)
 
-        print("-------------------------------")
-        print("STREAM LISTENER...")
-        print("  STORAGE ENV:", self.storage_env.upper())
-        print("  STORAGE SERVICE:", type(self.storage))
-        print("  BATCH SIZE:", self.batch_size)
-        print("--------------------------------")
+        #seek_confirmation()
 
-    def set_topics(self):
-        self.topics = self.storage.fetch_topic_names()
-        print("SET TOPICS:", self.topics)
-
-    def reset_topics(self):
-        self.set_topics()
-        raise TopicResetEvent("Let's trigger the listener to re-start in a kind of hacky way :-D")
+        # self.add_rules()
 
     #
-    # LISTEN FOR TWEETS AND COLLECT THEM
+    # DATA PROCESSING
     #
 
-    def on_connect(self):
-        print("LISTENER IS CONNECTED!")
+    # DON'T OVERRIDE THIS ORCHESTRATION FUNCTION!
+    #
+    #def on_data(self, raw_data):
+    #    """This is called when raw data is received from the stream.
+    #        This method handles sending the data to other methods.
+    #    """
+    #    print("-----------")
+    #    print("ON DATA!")
+    #    print(type(raw_data)) #> bytes
+    #    #breakpoint()
 
-    def on_status(self, status):
-        """Param status (tweepy.models.Status)"""
-        if self.is_collectable(status):
-            self.counter +=1
-            print("----------------")
-            print(f"DETECTED AN INCOMING TWEET! ({self.counter} -- {status.id_str})")
-            self.collect_in_batches(status)
+    def on_tweet(self, tweet):
+        """This is called when a Tweet is received."""
+        print("-----------")
+        print("ON TWEET!")
+        print(type(tweet)) #> Tweet model instance
+        #print(tweet.id)
+        print(tweet.data) #> dict representation, by default contains "id" and "text"
+        # 'items', 'keys', 'values',
+        # 'id', 'author_id', 'conversation_id', 'created_at', 'in_reply_to_user_id'
+        # 'text', 'geo', 'lang', 'possibly_sensitive',
+        # 'referenced_tweets', 'reply_settings', 'source', 'withheld'
+        # 'attachments',  'context_annotations', 'entities',
+        # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
 
-    @staticmethod
-    def is_collectable(status):
-        """Param status (tweepy.models.Status)"""
-        return bool(status.lang == "en")
+        breakpoint()
 
-    def collect_in_batches(self, status):
-        """
-        Param status (tweepy.models.Status)
-        Moving this logic out of on_status in hopes of preventing ProtocolErrors
-        Storing in batches to reduce API calls, and in hopes of preventing ProtocolErrors
-        """
-        self.batch.append(self.parse_status(status))
-        if len(self.batch) >= self.batch_size:
-            self.store_and_clear_batch()
+    def on_includes(self, includes):
+        """This is called when includes are received."""
+        print("-----------")
+        print("ON INCLUDES!")
+        print(type(includes)) #> dict
+        print(includes)
+        #breakpoint()
 
-    def store_and_clear_batch(self):
-        print("STORING BATCH OF", len(self.batch), "TWEETS...")
-        self.storage.append_tweets(self.batch)
-        print("CLEARING BATCH...")
-        self.batch = []
-        self.counter = 0
+    def on_errors(self, errors):
+        """This is called when errors are received."""
+        print("-----------")
+        print("ON ERRORS!")
+        print(type(errors)) #> dict
+        print(errors)
+        #breakpoint()
+
+    def on_matching_rules(self, matching_rules):
+        print("-----------")
+        print("ON MATCHING RULES!")
+        print(matching_rules)
+        #breakpoint()
 
     #
-    # HANDLE ERRORS
+    # ERROR HANDLING
     #
 
-    def on_exception(self, exception):
-        # has encountered errors:
-        #  + urllib3.exceptions.ProtocolError: ('Connection broken: IncompleteRead(0 bytes read)'
-        #  + urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool
-        print("EXCEPTION:", type(exception))
-        print(exception)
+    def on_close(self):
+        print("-----------")
+        print("ON CLOSE!")
+        breakpoint()
 
-    def on_error(self, status_code):
-        print("ERROR:", status_code)
+    def on_connection_error(self):
+        print("-----------")
+        print("ON CONNECTION ERROR!")
+        breakpoint()
+        self.disconnect()
 
-    def on_limit(self, track):
-        """Param: track (int) starts low and subsequently increases"""
-        print("RATE LIMITING", track)
-        sleep_seconds = self.backoff_strategy(track)
-        print("SLEEPING FOR:", sleep_seconds, "SECONDS...")
-        sleep(sleep_seconds)
 
-    @staticmethod
-    def backoff_strategy(i):
-        """
-        Param: i (int) increasing rate limit number from the twitter api
-        Returns: number of seconds to sleep for
-        """
-        return (int(i) + 1) ** 2 # raise to the power of two
 
-    def on_timeout(self):
-        print("TIMEOUT!")
-        return True # don't kill the stream!
-
-    def on_warning(self, notice):
-        print("DISCONNECTION WARNING:", type(notice))
-        print(notice)
-
-    def on_disconnect(self, notice):
-        print("DISCONNECT:", type(notice))
 
 if __name__ == "__main__":
 
-    listener = TwitterStreamListener()
-    seek_confirmation()
-    listener.set_topics()
+    #client = MyClient(TWITTER_BEARER_TOKEN, wait_on_rate_limit=True)
+    client = MyClient()
 
-    #stream = Stream(listener.auth, listener)
-    #print("STREAM", type(stream))
+    #
+    # ADD RULES (todo: get these from the database)
+    #
+    #   https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule
+    #   https://docs.tweepy.org/en/stable/streamrule.html#tweepy.StreamRule
+    #   https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/post-tweets-search-stream-rules
+    #
+    # All operators are evaluated in a case-insensitive manner. For example, the rule cat will match all of the following: cat, CAT, Cat.
+    #
+    # EXAMPLES:
+    #   `#MyTag`
+    #   `"twitter data" has:mentions (has:media OR has:links)` ...
+    #   `snow day #NoSchool` ... will match Tweets containing the terms snow and day and the hashtag #NoSchool.
+    #   `grumpy OR cat OR #meme` will match any Tweets containing at least the terms grumpy or cat, or the hashtag #meme.
+    #   `cat #meme -grumpy` ... will match Tweets containing the hashtag #meme and the term cat, but only if they do not contain the term grumpy.
+    #   `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
+    rules = [
+        StreamRule("@January6thCmte lang:en"), # lang:en
+        StreamRule("#January6Committe lang:en"),
+        StreamRule("#January6Hearing lang:en"),
+        StreamRule("#Jan6Committee lang:en"),
+        StreamRule("#Jan6 lang:en"),
+    ]
+    client.add_rules(rules)
+    print(client.get_rules())
 
-    while True:
-        try:
-            #stream.filter(track=listener.topics)
-            listener.filter(track=listener.topics)
-            #> AttributeError: 'TwitterStreamListener' object has no attribute 'running'
+    # go listen for tweets matching the specified rules
+    # https://github.com/tweepy/tweepy/blob/9b636bc529687dbd993bb1aef0177ee78afdabec/tweepy/streaming.py#L553
 
-        except ProtocolError:
-            print("--------------------------------")
-            print("RESTARTING AFTER PROTOCOL ERROR!")
-            continue
-        except TopicResetEvent as event:
-            print("--------------------------------")
-            print("RESTARTING AFTER TOPICS REFRESH!")
-            continue
+    stream_params = dict(backfill_minutes=5,
+        expansions=[],
+        media_fields=[],
+        place_fields=[],
+        poll_fields=[],
+        tweet_filelds=[],
+        user_fields=[],
+        threaded=False
+    )
+    # Streams about 1% of all Tweets in real-time.
+    #client.sample()
+    #client.sample(**stream_params)
 
-    # this never gets reached
+    # Streams Tweets in real-time based on a specific set of filter rules.
+    #client.filter()
+    client.filter(**stream_params)
