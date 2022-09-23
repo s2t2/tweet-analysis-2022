@@ -2,6 +2,7 @@
 import os
 from pprint import pprint
 #from time import sleep
+from datetime import datetime
 
 from tweepy.streaming import StreamingClient
 from tweepy import StreamRule
@@ -9,7 +10,6 @@ from tweepy import StreamRule
 
 #from app import seek_confirmation
 from app.twitter_service import TWITTER_BEARER_TOKEN
-from app.tweet_streaming.parser import parse_tweet
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="50"))
 
@@ -140,9 +140,103 @@ class MyClient(StreamingClient):
 
         print("-----------")
         print("INCLUDES:")
-        pprint(includes.data)
+        pprint(includes.keys())
+
+        users = includes.get("users") or []
+        ref_tweets = includes.get("tweets") or []
+
+        user_records =
+        self.batch["users"] += user_records
 
         breakpoint()
+
+        #if any(ref_tweets):
+        #    breakpoint()
+
+        full_text = tweet.text
+        user_screen_name = "TODO"
+        user_name = ""
+        user_created_at = ""
+        user_verified = ""
+
+        retweet_status_id, retweet_user_id = None, None
+        reply_status_id, reply_user_id = None, None
+        quote_status_id, quote_user_id = None, None
+
+        tweet_record = {
+            "status_id": tweet.id,
+            "status_text": full_text,
+            "created_at": tweet.created_at,
+            # user info
+            "user_id": tweet.author_id,
+            "user_screen_name": user_screen_name,
+            "user_name": user_name,
+            "user_created_at": user_created_at,
+            "user_verified": user_verified,
+            # referenced tweet info:
+            "retweet_status_id": retweet_status_id,
+            "retweet_user_id": retweet_user_id,
+            "reply_status_id": reply_status_id,
+            "reply_user_id": reply_user_id,
+            "quote_status_id": quote_status_id,
+            "quote_user_id": quote_user_id,
+            # this is new
+            "conversation_id": tweet.conversation_id
+        }
+
+
+        # return tweet_record, ...
+
+    def parse_users(self, users):
+        user_records = []
+        user_hashtag_records = []
+        user_mention_records = []
+
+        for user in users:
+            user_records.append({
+                "user_id": user.id,
+                "screen_name": user.username,
+                "name": user.name,
+                "description": user.description,
+                "url": user.url,
+                "profile_image_url": user.profile_image_url,
+                "verified": user.verified,
+                "created_at": user.created_at,
+                "pinned_tweet_id": user.pinned_tweet_id, #> todo: request this
+                "followers_count": user.public_metrics["followers_count"],
+                "following_count": user.public_metrics["following_count"],
+                "tweet_count": user.public_metrics["tweet_count"],
+                "listed_count": user.public_metrics["listed_count"],
+                "accessed_at": datetime.now(),
+            })
+
+            profile_entities = user.entities.get("description") or {}
+            hashtags = profile_entities.get("hashtags") or []
+            mentions = profile_entities.get("mentions") or []
+
+            user_hashtag_records += [{
+                "user_id": user.id,
+                "tag": tag["tag"],
+                "accessed_at": datetime.now()
+            } for tag in hashtags]
+
+            user_mention_records += [{
+                "user_id": user.id,
+                "mention_screen_name": mention["username"],
+                "accessed_at": datetime.now()
+            } for mention in mentions]
+
+        return user_records, user_hashtag_records, user_mention_records
+
+
+
+
+    def parse_media(self, includes):
+        pass
+
+
+    def parse_status_media(self, includes):
+        pass
 
 
 
@@ -222,12 +316,19 @@ class MyClient(StreamingClient):
             print("ERRORS...")
             breakpoint()
 
-        self.parse_tweet(tweet, includes)
-
         #tweet_record, annotation_records, mention_records = parse_tweet(tweet)
         #self.batch["tweets"].append(tweet_record)
         #self.batch["annotations"] += annotation_records
         #self.batch["mentions"] += mention_records
+
+        users = includes.get("users") or []
+        user_records, user_hashtag_records, user_mention_records = self.parse_users(users)
+        self.batch["users"] += user_records
+        self.batch["user_hashtags"] += user_hashtag_records
+        self.batch["user_mentions"] += user_mention_records
+
+
+
 
 
 
