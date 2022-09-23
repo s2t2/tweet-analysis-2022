@@ -17,30 +17,24 @@ class BigQueryStorage(BigQueryService):
     # MIGRATIONS
     #
 
-    #def migrate_domains_table(self, destructive=False):
-    #    sql = ""
-    #    if destructive:
-    #        sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.domains_stream`; "
-    #    sql += f"""
-    #        CREATE TABLE IF NOT EXISTS `{self.dataset_address}.domains_stream` (
-    #            domain_id INT64,
-    #            domain_name STRING,
-    #        );
-    #    """
-    #    self.execute_query(sql)
+    def migrate_media_table(self, destructive=False):
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.media_stream`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.media_stream` (
+                media_key STRING,
+                type STRING,
+                url STRING,
+                preview_image_url STRING,
 
-    #def migrate_entities_table(self, destructive=False):
-    #    sql = ""
-    #    if destructive:
-    #        sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.entities_stream`; "
-    #    sql += f"""
-    #        CREATE TABLE IF NOT EXISTS `{self.dataset_address}.entities_stream` (
-    #            entity_id INT64,
-    #            entity_name STRING,
-    #            domain_ids ARRAY<INT64>,
-    #        );
-    #    """
-    #    self.execute_query(sql)
+                alt_text STRING,
+                duration_ms INT64,
+                height INT64,
+                width INT64,
+            );
+        """
+        self.execute_query(sql)
 
     def migrate_tweets_table(self, destructive=False):
         sql = ""
@@ -58,25 +52,6 @@ class BigQueryStorage(BigQueryService):
                 reply_status_id INT64,
                 quote_status_id INT64,
                 conversation_id INT64,
-            );
-        """
-        self.execute_query(sql)
-
-    def migrate_media_table(self, destructive=False):
-        sql = ""
-        if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.media_stream`; "
-        sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.media_stream` (
-                media_key STRING,
-                type STRING,
-                url STRING,
-                preview_image_url STRING,
-
-                alt_text STRING,
-                duration_ms INT64,
-                height INT64,
-                width INT64,
             );
         """
         self.execute_query(sql)
@@ -156,7 +131,6 @@ class BigQueryStorage(BigQueryService):
             );
         """
         self.execute_query(sql)
-
 
     def migrate_users_table(self, destructive=False):
         sql = ""
