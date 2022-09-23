@@ -1,5 +1,5 @@
 
-
+import os
 #from pprint import pprint
 #from time import sleep
 
@@ -9,6 +9,9 @@ from tweepy import StreamRule
 
 #from app import seek_confirmation
 from app.twitter_service import TWITTER_BEARER_TOKEN
+from app.tweet_streaming.parser import parse_tweet
+
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="20"))
 
 
 class MyClient(StreamingClient):
@@ -42,7 +45,7 @@ class MyClient(StreamingClient):
         The HTTP status codes reference for the Twitter API can be found at https://developer.twitter.com/en/support/twitter-api/error-troubleshooting.
     """
 
-    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True):
+    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size=BATCH_SIZE):
         # todo: also consider passing max_retries
         super().__init__(bearer_token=bearer_token, wait_on_rate_limit=wait_on_rate_limit)
 
@@ -56,6 +59,12 @@ class MyClient(StreamingClient):
         #seek_confirmation()
 
         # self.add_rules()
+
+        self.counter = 0
+        self.batch_size = batch_size
+        self.tweets_batch = []
+        self.mentions_batch = []
+        self.annotations_batch = []
 
     #
     # DATA PROCESSING
@@ -74,65 +83,21 @@ class MyClient(StreamingClient):
 
     def on_tweet(self, tweet):
         """This is called when a Tweet is received."""
-        print("-----------")
-        print("ON TWEET!")
-        print(type(tweet)) #> Tweet model instance
-        #print(tweet.id)
-        print(tweet.data) #> dict representation, by default contains "id" and "text"
-        # 'items', 'keys', 'values',
-        # 'id', 'author_id', 'conversation_id', 'created_at', 'in_reply_to_user_id'
-        # 'text', 'geo', 'lang', 'possibly_sensitive',
-        # 'referenced_tweets', 'reply_settings', 'source', 'withheld'
-        # 'attachments',  'context_annotations', 'entities',
-        # 'non_public_metrics', 'organic_metrics', 'promoted_metrics', 'public_metrics',
+        self.counter +=1
+        print("----------------")
+        print(f"DETECTED AN INCOMING TWEET! ({self.counter} -- {tweet.id})")
 
-        # WE ARE WORKING WITH SOMETHING LIKE THIS:
-        #
-        #>{
-        #>    'attachments': {},
-        #>    'author_id': '1188503073175560192',
-        #>    'context_annotations': [
-        #>        {
-        #>            'domain': {'id': '10', 'name': 'Person', 'description': 'Named people in the world like Nelson Mandela'},
-        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
-        #>        },
-        #>        {
-        #>            'domain': {'id': '35', 'name': 'Politician', 'description': 'Politicians in the world, like Joe Biden'},
-        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
-        #>        },
-        #>        {
-        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
-        #>            'entity': {'id': '847878884917886977', 'name': 'Politics', 'description': 'Politics'}
-        #>        },
-        #>        {
-        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
-        #>            'entity': {'id': '981179589291515904', 'name': 'Jamie Raskin', 'description': 'US Representative Jamie Raskin (MD-08)'}
-        #>        },
-        #>        {
-        #>            'domain': {'id': '131', 'name': 'Unified Twitter Taxonomy', 'description': 'A taxonomy view into the Semantic Core knowledge graph'},
-        #>            'entity': {'id': '1070032753834438656', 'name': 'Political figures', 'description': 'Politician'}
-        #>        }
-        #>    ],
-        #>    'created_at': '2022-09-22T21:38:30.000Z',
-        #>    'entities': {
-        #>        'annotations': [
-        #>            {'start': 27, 'end': 40, 'probability': 0.9801, 'type': 'Person', 'normalized_text': 'Anika Navaroli'}
-        #>        ],
-        #>        'mentions': [
-        #>            {'start': 0, 'end': 10, 'username': 'RepRaskin', 'id': '806906355214852096'},
-        #>            {'start': 11, 'end': 26, 'username': 'January6thCmte', 'id': '1415384176593883137'}
-        #>        ]
-        #>    },
-        #>    'geo': {},
-        #>    'id': '1573064219926339584',
-        #>    'referenced_tweets': [
-        #>        {'type': 'replied_to', 'id': '1573033231976464387'}
-        #>    ],
-        #>    'text': '@RepRaskin @January6thCmte Anika Navaroli is a very brave and patriotic person! I thank her for trying!'
-        #>}
-        # WITH ATTACHMENTS:  'attachments': {'media_keys': ['13_963799572161101824']}
+        #self.store_in_batches(tweet)
+        tweet_record, annotation_records, mention_records = parse_tweet(tweet)
+        self.tweets_batch.append(tweet_record)
+        self.annotations_batch += annotation_records
+        self.mentions_batch += mention_records
+        #self.hashtags_batch += hashtag_records
 
-        print(tweet.id, tweet.text)
+        if len(self.tweets_batch) >= self.batch_size:
+            self.store_and_reset_batches()
+
+
 
 
     def on_includes(self, includes):
@@ -159,13 +124,13 @@ class MyClient(StreamingClient):
         print(errors)
         #breakpoint()
 
-    def on_matching_rules(self, matching_rules):
-        print("-----------")
-        print("ON MATCHING RULES!")
-        print(matching_rules)
-        #breakpoint()
-        #> [StreamRule(value=None, tag='', id='1573058221656375301'), StreamRule(value=None, tag='', id='1573064191111577601')]
-        # WEIRD THAT THE VALUES ARE NULL?
+    #def on_matching_rules(self, matching_rules):
+    #    print("-----------")
+    #    print("ON MATCHING RULES!")
+    #    print(matching_rules)
+    #    #breakpoint()
+    #    #> [StreamRule(value=None, tag='', id='1573058221656375301'), StreamRule(value=None, tag='', id='1573064191111577601')]
+    #    # WEIRD THAT THE VALUES ARE NULL?
 
     #
     # ERROR HANDLING
@@ -181,6 +146,45 @@ class MyClient(StreamingClient):
         print("ON CONNECTION ERROR!")
         #breakpoint()
         #self.disconnect()
+
+    #
+    # SAVING DATA
+    #
+
+    #def store_in_batches(self, tweet):
+    #    tweet_record, annotation_records, mention_records = parse_tweet(tweet)
+    #
+    #    self.tweets_batch.append(tweet_record)
+    #    self.annotations_batch += annotation_records
+    #    self.mentions_batch += mention_records
+    #    #self.hashtags_batch += hashtag_records
+    #
+    #    #if len(self.tweets_batch) >= self.batch_size:
+    #    #    self.store_and_clear_tweets_batch()
+    #    #if len(self.annotations_batch) >= self.batch_size:
+    #    #    self.store_and_clear_annotations_batch()
+    #    #if len(self.mentions_batch) >= self.batch_size:
+    #    #    self.store_and_clear_mentions_batch()
+    #    if len(self.tweets_batch) >= self.batch_size:
+    #        self.store_and_clear_batches()
+
+
+    def store_and_reset_batches(self):
+        print("STORING BATCHES OF...", len(self.tweets_batch), "TWEETS",
+            "|", len(self.annotations_batch), "ANNOTATIONS",
+            "|", len(self.mentions_batch), "MENTIONS",
+        )
+        #TODO: self.storage.save_tweets(self.tweets_batch)
+        #TODO: self.storage.save_annotations(self.annotations_batch)
+        #TODO: self.storage.save_mentions(self.tweets_batch)
+        print("CLEARING BATCHES...")
+        self.counter = 0
+        self.tweets_batch = []
+        self.annotations_batch = []
+        self.mentions_batch = []
+
+
+
 
 
 
@@ -208,7 +212,7 @@ if __name__ == "__main__":
     #   `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
     print("RULES:")
     rules = [
-        StreamRule("@January6thCmte lang:en"), # lang:en
+        StreamRule("@January6thCmte lang:en"),
         StreamRule("#January6Committe lang:en"),
         StreamRule("#January6Hearing lang:en"),
         StreamRule("#Jan6Committee lang:en"),
@@ -236,9 +240,10 @@ if __name__ == "__main__":
             'author_id',
             'attachments.media_keys',
             'referenced_tweets.id',
-            'referenced_tweets.id.author_id',
+            'referenced_tweets.id.author_id', # didn't come through so...
+            #'referenced_tweets.author_id', # making this up? > JK, LEADS TO 400 ERRORS!
             #'in_reply_to_user_id',
-            'geo.place_id',
+            #'geo.place_id',
             'entities.mentions.username'
         ],
         tweet_fields=['created_at', 'entities', 'context_annotations'],
