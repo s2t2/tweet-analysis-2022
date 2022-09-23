@@ -75,6 +75,77 @@ class MyClient(StreamingClient):
             "users": [],
         }
 
+    @property
+    def stream_params(self):
+        """
+        Expansions: https://developer.twitter.com/en/docs/twitter-api/expansions
+
+        Media Fields: https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/media
+
+        Tweet Fields: https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/tweet
+
+        User Fields: https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/user
+        """
+        return dict(
+            backfill_minutes=5,
+            #threaded=False
+            expansions=[
+                'author_id',
+                'attachments.media_keys',
+                'referenced_tweets.id', # Returns a Tweet object that this Tweet is referencing (either as a Retweet, Quoted Tweet, or reply)
+                'referenced_tweets.id.author_id', # Returns a user object for the author of the referenced Tweet
+                'in_reply_to_user_id',
+                #'geo.place_id',
+                'entities.mentions.username'
+            ],
+            media_fields=[
+                'duration_ms',
+                'preview_image_url',
+                'public_metrics',
+                'width',
+                'alt_text',
+                'url',
+                ],
+            #place_fields=[],
+            #poll_fields=[],
+            tweet_fields=[
+                'author_id',
+                'context_annotations',
+                'conversation_id',
+                'created_at',
+                'entities',
+                'in_reply_to_user_id',
+                'lang',
+                'public_metrics', #> retweet_count, reply_count, like_count, quote_count
+                'referenced_tweets',
+                'source'
+            ],
+            user_fields=[
+                'created_at',
+                'description',
+                #'location',
+                'pinned_tweet_id',
+                'profile_image_url',
+                'public_metrics', #> followers_count, following_count, tweet_count, listed_count
+                'entities',
+                'url',
+                'verified',
+            ],
+        )
+
+    def parse_tweet(self, tweet, includes):
+        print("-----------")
+        print("TWEET:")
+        pprint(tweet.data)
+
+        print("-----------")
+        print("INCLUDES:")
+        pprint(includes.data)
+
+        breakpoint()
+
+
+
     #
     # DATA PROCESSING
     #
@@ -146,13 +217,12 @@ class MyClient(StreamingClient):
         # wrapper for named tuple ("data", "includes", "errors", "matching_rules")
         tweet = response.data
         includes = response.includes
-        errors = response.errors
-        if any(errors):
+        if any(response.errors):
+            print("-----------")
             print("ERRORS...")
             breakpoint()
 
-        pprint(tweet)
-        breakpoint()
+        self.parse_tweet(tweet, includes)
 
         #tweet_record, annotation_records, mention_records = parse_tweet(tweet)
         #self.batch["tweets"].append(tweet_record)
@@ -218,25 +288,7 @@ if __name__ == "__main__":
     # go listen for tweets matching the specified rules
     # https://github.com/tweepy/tweepy/blob/9b636bc529687dbd993bb1aef0177ee78afdabec/tweepy/streaming.py#L553
 
-    stream_params = dict(
-        backfill_minutes=5,
-        #threaded=False
-        expansions=[
-            'author_id',
-            'attachments.media_keys',
-            'referenced_tweets.id',
-            'referenced_tweets.id.author_id', # didn't come through so...
-            #'referenced_tweets.author_id', # making this up? > JK, LEADS TO 400 ERRORS!
-            #'in_reply_to_user_id',
-            #'geo.place_id',
-            'entities.mentions.username'
-        ],
-        media_fields=['url', 'preview_image_url'],
-        #place_fields=[],
-        #poll_fields=[],
-        tweet_fields=['created_at', 'entities', 'context_annotations'],
-        user_fields=['verified', 'created_at'],
-    )
+
 
     # Streams about 1% of all Tweets in real-time.
     #client.sample()
@@ -244,4 +296,4 @@ if __name__ == "__main__":
 
     # Streams Tweets in real-time based on a specific set of filter rules.
     #client.filter()
-    client.filter(**stream_params)
+    client.filter(**client.stream_params)
