@@ -67,12 +67,17 @@ class MyClient(StreamingClient):
     @property
     def default_batch(self):
         return {
+            "media": [],
             "tweets": [],
-            "annotations": [],
-            "context_entities": [],
-            "hashtags": [],
-            "mentions": [],
+            "status_media": [],
+            "status_entities": [],
+            "status_hashtags": [],
+            "status_mentions": [],
+            "status_annotations": [],
+            "status_urls": [],
             "users": [],
+            "user_hashtags": [],
+            "user_mentions": [],
         }
 
     @property
@@ -209,16 +214,27 @@ class MyClient(StreamingClient):
             print("ERRORS...")
             breakpoint()
 
-        users = includes.get("users") or []
-        self.parse_users(users)
+        media = response.includes.get("media") or []
+        self.parse_media(media)
 
         ref_tweets = includes.get("tweets") or []
         tweets = [tweet] + ref_tweets
         self.parse_tweets(tweets)
 
+        users = includes.get("users") or []
+        self.parse_users(users)
 
-    def parse_media(self, includes):
-        pass
+    def parse_media(self, media):
+        self.batch["media"] += [{
+            "media_key": m["media_key"],
+            "type": m["type"],
+            "url": m["url"],
+            "preview_image_url": m["preview_image_url"],
+            "alt_text": m.get("alt_text"),
+            "duration_ms": m.get("duration_ms"),
+            "height": m.get("height"),
+            "width": m.get("width"),
+        } for m in media]
 
     def parse_tweets(self, tweets):
         for tweet in tweets:
@@ -292,7 +308,6 @@ class MyClient(StreamingClient):
                     'url' : url_ent['expanded_url']
                 } for url_ent in url_entities]
                 self.batch["status_urls"] += urls
-
 
     def parse_users(self, users):
         for user in users:
