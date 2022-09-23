@@ -116,13 +116,15 @@ def parse_tweet(tweet):
         "user_name": user_name,
         "user_created_at": user_created_at,
         "user_verified": user_verified,
-
+        # referenced tweet info:
         "retweet_status_id": retweet_status_id,
         "retweet_user_id": retweet_user_id,
         "reply_status_id": reply_status_id,
         "reply_user_id": reply_user_id,
         "quote_status_id": quote_status_id,
         "quote_user_id": quote_user_id,
+        # this is new
+        "conversation_id": tweet.conversation_id
     }
 
     #
@@ -148,3 +150,7 @@ def parse_tweet(tweet):
         } for m in mentions]
 
     return tweet_record, annotation_records, mention_records
+
+
+def parse_includes(includes):
+    breakpoint()

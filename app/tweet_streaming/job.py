@@ -1,6 +1,6 @@
 
 import os
-#from pprint import pprint
+from pprint import pprint
 #from time import sleep
 
 from tweepy.streaming import StreamingClient
@@ -11,7 +11,7 @@ from tweepy import StreamRule
 from app.twitter_service import TWITTER_BEARER_TOKEN
 from app.tweet_streaming.parser import parse_tweet
 
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="20"))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="50"))
 
 
 class MyClient(StreamingClient):
@@ -45,7 +45,7 @@ class MyClient(StreamingClient):
         The HTTP status codes reference for the Twitter API can be found at https://developer.twitter.com/en/support/twitter-api/error-troubleshooting.
     """
 
-    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size=BATCH_SIZE):
+    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size_limit=BATCH_SIZE):
         # todo: also consider passing max_retries
         super().__init__(bearer_token=bearer_token, wait_on_rate_limit=wait_on_rate_limit)
 
@@ -60,18 +60,25 @@ class MyClient(StreamingClient):
 
         # self.add_rules()
 
-        self.counter = 0
-        self.batch_size = batch_size
-        self.tweets_batch = []
-        self.mentions_batch = []
-        self.annotations_batch = []
+        self.counter = 0 # refers to the number of tweets processed
+        self.batch_size_limit = batch_size_limit # refers to the max number of tweets in the batch before saving
+        self.batch = self.default_batch
+
+    @property
+    def default_batch(self):
+        return {
+            "tweets": [],
+            "annotations": [],
+            "context_entities": [],
+            "hashtags": [],
+            "mentions": [],
+            "users": [],
+        }
 
     #
     # DATA PROCESSING
     #
 
-    # DON'T OVERRIDE THIS ORCHESTRATION FUNCTION!
-    #
     #def on_data(self, raw_data):
     #    """This is called when raw data is received from the stream.
     #        This method handles sending the data to other methods.
@@ -79,50 +86,41 @@ class MyClient(StreamingClient):
     #    print("-----------")
     #    print("ON DATA!")
     #    print(type(raw_data)) #> bytes
-    #    #breakpoint()
 
-    def on_tweet(self, tweet):
-        """This is called when a Tweet is received."""
-        self.counter +=1
-        print("----------------")
-        print(f"DETECTED AN INCOMING TWEET! ({self.counter} -- {tweet.id})")
+    #def on_tweet(self, tweet):
+    #    """This is called when a Tweet is received."""
+    #    print("----------------")
+    #    self.counter +=1
+    #    print(f"DETECTED AN INCOMING TWEET! ({self.counter} -- {tweet.id})")
+    #
+    #    tweet_record, annotation_records, mention_records = parse_tweet(tweet)
+    #
+    #    #self.update_batch(tweet)
+    #    #if len(self.batch["tweets"]) >= self.batch_size:
+    #        #self.save_and_clear_batch()
 
-        #self.store_in_batches(tweet)
-        tweet_record, annotation_records, mention_records = parse_tweet(tweet)
-        self.tweets_batch.append(tweet_record)
-        self.annotations_batch += annotation_records
-        self.mentions_batch += mention_records
-        #self.hashtags_batch += hashtag_records
+    #def on_includes(self, includes):
+    #    """This is called when includes are received."""
+    #    print("-----------")
+    #    print("ON INCLUDES!")
+    #    print(type(includes)) #> dict
+    #    print(includes)
+    #    breakpoint()
+    #    #> {
+    #    #>     'users': [
+    #    #>         <User id=734791975 name=Deb2 username=deb2_debra>,
+    #    #>         <User id=165185845 name=Claudia Maheux 🇨🇦 username=claudiacm1146>],
+    #    #>     'tweets': [
+    #    #>         <Tweet id=1573037573425053703 text='Oh my! Heads are going to roll! #Jan6 #Jan6th #Jan6thInsurrection #GOP\nhttps://t.co/oLEJpp6qgq'>
+    #    #>     ]
+    #    #> }
 
-        if len(self.tweets_batch) >= self.batch_size:
-            self.store_and_reset_batches()
-
-
-
-
-    def on_includes(self, includes):
-        """This is called when includes are received."""
-        print("-----------")
-        print("ON INCLUDES!")
-        print(type(includes)) #> dict
-        print(includes)
-        #breakpoint()
-        #> {
-        #>     'users': [
-        #>         <User id=734791975 name=Deb2 username=deb2_debra>,
-        #>         <User id=165185845 name=Claudia Maheux 🇨🇦 username=claudiacm1146>],
-        #>     'tweets': [
-        #>         <Tweet id=1573037573425053703 text='Oh my! Heads are going to roll! #Jan6 #Jan6th #Jan6thInsurrection #GOP\nhttps://t.co/oLEJpp6qgq'>
-        #>     ]
-        #> }
-
-    def on_errors(self, errors):
-        """This is called when errors are received."""
-        print("-----------")
-        print("ON ERRORS!")
-        print(type(errors)) #> dict
-        print(errors)
-        #breakpoint()
+    #def on_errors(self, errors):
+    #    """This is called when errors are received."""
+    #    print("-----------")
+    #    print("ON ERRORS!")
+    #    print(type(errors)) #> dict
+    #    print(errors)
 
     #def on_matching_rules(self, matching_rules):
     #    print("-----------")
@@ -132,57 +130,52 @@ class MyClient(StreamingClient):
     #    #> [StreamRule(value=None, tag='', id='1573058221656375301'), StreamRule(value=None, tag='', id='1573064191111577601')]
     #    # WEIRD THAT THE VALUES ARE NULL?
 
+    def on_response(self, response):
+        print("-----------------")
+        print("ON RESPONSE...")
+        self.counter += 1
+        print(self.counter, "---", response)
+
+        self.update_batch(response)
+
+        if len(self.batch["tweets"]) > self.batch_size_limit:
+            # TODO: self.storage.save_batch(self.batch)
+            self.batch = self.default_batch
+
+    def update_batch(self, response):
+        # wrapper for named tuple ("data", "includes", "errors", "matching_rules")
+        tweet = response.data
+        includes = response.includes
+        errors = response.errors
+        if any(errors):
+            print("ERRORS...")
+            breakpoint()
+
+        pprint(tweet)
+        breakpoint()
+
+        #tweet_record, annotation_records, mention_records = parse_tweet(tweet)
+        #self.batch["tweets"].append(tweet_record)
+        #self.batch["annotations"] += annotation_records
+        #self.batch["mentions"] += mention_records
+
+
+
+
+
     #
     # ERROR HANDLING
     #
 
     def on_close(self):
         print("-----------")
-        print("ON CLOSE!")
-        #breakpoint()
+        print("STREAM ON CLOSE!")
 
     def on_connection_error(self):
         print("-----------")
-        print("ON CONNECTION ERROR!")
-        #breakpoint()
+        print("STREAM ON CONNECTION ERROR!")
         #self.disconnect()
-
-    #
-    # SAVING DATA
-    #
-
-    #def store_in_batches(self, tweet):
-    #    tweet_record, annotation_records, mention_records = parse_tweet(tweet)
-    #
-    #    self.tweets_batch.append(tweet_record)
-    #    self.annotations_batch += annotation_records
-    #    self.mentions_batch += mention_records
-    #    #self.hashtags_batch += hashtag_records
-    #
-    #    #if len(self.tweets_batch) >= self.batch_size:
-    #    #    self.store_and_clear_tweets_batch()
-    #    #if len(self.annotations_batch) >= self.batch_size:
-    #    #    self.store_and_clear_annotations_batch()
-    #    #if len(self.mentions_batch) >= self.batch_size:
-    #    #    self.store_and_clear_mentions_batch()
-    #    if len(self.tweets_batch) >= self.batch_size:
-    #        self.store_and_clear_batches()
-
-
-    def store_and_reset_batches(self):
-        print("STORING BATCHES OF...", len(self.tweets_batch), "TWEETS",
-            "|", len(self.annotations_batch), "ANNOTATIONS",
-            "|", len(self.mentions_batch), "MENTIONS",
-        )
-        #TODO: self.storage.save_tweets(self.tweets_batch)
-        #TODO: self.storage.save_annotations(self.annotations_batch)
-        #TODO: self.storage.save_mentions(self.tweets_batch)
-        print("CLEARING BATCHES...")
-        self.counter = 0
-        self.tweets_batch = []
-        self.annotations_batch = []
-        self.mentions_batch = []
-
+        pass
 
 
 
@@ -212,30 +205,22 @@ if __name__ == "__main__":
     #   `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
     print("RULES:")
     rules = [
-        StreamRule("@January6thCmte lang:en"),
-        StreamRule("#January6Committe lang:en"),
-        StreamRule("#January6Hearing lang:en"),
-        StreamRule("#Jan6Committee lang:en"),
-        StreamRule("#Jan6 lang:en"),
-    ]
-    client.add_rules(rules)
+        "@January6thCmte lang:en",
+        "#January6Committe lang:en",
+        "#January6Hearing lang:en",
+        "#Jan6Committee lang:en",
+        "#Jan6 lang:en",
+    ] # TODO: self.storage.fetch_rules()
+    stream_rules = [StreamRule(rule) for rule in rules]
+    client.add_rules(stream_rules)
     print(client.get_rules())
 
     # go listen for tweets matching the specified rules
     # https://github.com/tweepy/tweepy/blob/9b636bc529687dbd993bb1aef0177ee78afdabec/tweepy/streaming.py#L553
 
-    #stream_params = dict(backfill_minutes=5,
-    #    expansions=[],
-    #    media_fields=[],
-    #    place_fields=[],
-    #    poll_fields=[],
-    #    tweet_filelds=[],
-    #    user_fields=[],
-    #    threaded=False
-    #)
-
-    # using similar params as our search collection script:
     stream_params = dict(
+        backfill_minutes=5,
+        #threaded=False
         expansions=[
             'author_id',
             'attachments.media_keys',
@@ -246,8 +231,10 @@ if __name__ == "__main__":
             #'geo.place_id',
             'entities.mentions.username'
         ],
-        tweet_fields=['created_at', 'entities', 'context_annotations'],
         media_fields=['url', 'preview_image_url'],
+        #place_fields=[],
+        #poll_fields=[],
+        tweet_fields=['created_at', 'entities', 'context_annotations'],
         user_fields=['verified', 'created_at'],
     )
 
