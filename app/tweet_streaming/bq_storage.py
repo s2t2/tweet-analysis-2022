@@ -53,14 +53,11 @@ class BigQueryStorage(BigQueryService):
                 created_at TIMESTAMP,
 
                 user_id INT64,
-                retweet_status_id INT64,
-                retweet_user_id INT64,
-                reply_status_id INT64,
-                reply_user_id INT64,
-                quote_status_id INT64,
-                quote_user_id INT64,
 
-                accessed_at TIMESTAMP,
+                retweet_status_id INT64,
+                reply_status_id INT64,
+                quote_status_id INT64,
+                conversation_id INT64,
             );
         """
         self.execute_query(sql)

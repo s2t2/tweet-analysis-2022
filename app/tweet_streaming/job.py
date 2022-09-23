@@ -133,59 +133,39 @@ class MyClient(StreamingClient):
             ],
         )
 
-    def parse_tweet(self, tweet, includes):
-        print("-----------")
-        print("TWEET:")
-        pprint(tweet.data)
+    def parse_tweets(self, tweets):
 
-        print("-----------")
-        print("INCLUDES:")
-        pprint(includes.keys())
+        tweet_records = []
 
-        users = includes.get("users") or []
-        ref_tweets = includes.get("tweets") or []
+        for tweet in tweets:
 
-        user_records =
-        self.batch["users"] += user_records
+            retweet_status_id, reply_status_id, quote_status_id = None, None, None
+            if hasattr(tweet, "referenced_tweets") and tweet["referenced_tweets"]:
+                ref_tweets = tweet["referenced_tweets"]
+                for ref_tweet in ref_tweets:
+                    ref_type = ref_tweet.type #> "replied_to", "retweeted", "quoted"
+                    if ref_type == "retweeted":
+                        retweet_status_id = ref_tweet.id
+                    elif ref_type == "replied_to":
+                        reply_status_id = ref_tweet.id
+                    elif ref_type == "quoted":
+                        quote_status_id = ref_tweet.id
 
-        breakpoint()
+            tweet_records.append({
+                "status_id": tweet.id,
+                "status_text": tweet.text,
+                "created_at": tweet.created_at,
+                # user info:
+                "user_id": tweet.author_id,
+                # referenced tweet info:
+                "retweet_status_id": retweet_status_id,
+                "reply_status_id": reply_status_id,
+                "quote_status_id": quote_status_id,
+                # this is new
+                "conversation_id": tweet.conversation_id,
+            })
 
-        #if any(ref_tweets):
-        #    breakpoint()
-
-        full_text = tweet.text
-        user_screen_name = "TODO"
-        user_name = ""
-        user_created_at = ""
-        user_verified = ""
-
-        retweet_status_id, retweet_user_id = None, None
-        reply_status_id, reply_user_id = None, None
-        quote_status_id, quote_user_id = None, None
-
-        tweet_record = {
-            "status_id": tweet.id,
-            "status_text": full_text,
-            "created_at": tweet.created_at,
-            # user info
-            "user_id": tweet.author_id,
-            "user_screen_name": user_screen_name,
-            "user_name": user_name,
-            "user_created_at": user_created_at,
-            "user_verified": user_verified,
-            # referenced tweet info:
-            "retweet_status_id": retweet_status_id,
-            "retweet_user_id": retweet_user_id,
-            "reply_status_id": reply_status_id,
-            "reply_user_id": reply_user_id,
-            "quote_status_id": quote_status_id,
-            "quote_user_id": quote_user_id,
-            # this is new
-            "conversation_id": tweet.conversation_id
-        }
-
-
-        # return tweet_record, ...
+        return tweet_records
 
     def parse_users(self, users):
         user_records = []
@@ -235,8 +215,6 @@ class MyClient(StreamingClient):
         pass
 
 
-    def parse_status_media(self, includes):
-        pass
 
 
 
@@ -327,7 +305,9 @@ class MyClient(StreamingClient):
         self.batch["user_hashtags"] += user_hashtag_records
         self.batch["user_mentions"] += user_mention_records
 
-
+        ref_tweets = includes.get("tweets") or []
+        tweets = [tweet] + ref_tweets
+        results = self.parse_tweets(tweets)
 
 
 
