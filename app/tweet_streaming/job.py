@@ -134,11 +134,12 @@ class MyClient(StreamingClient):
         )
 
     def parse_tweets(self, tweets):
-
         tweet_records = []
+        status_media_records = []
+        status_entity_records = []
+        status_hashtag_records, status_mention_records, status_annotation_records, status_url_records = [], [], [], []
 
         for tweet in tweets:
-
             retweet_status_id, reply_status_id, quote_status_id = None, None, None
             if hasattr(tweet, "referenced_tweets") and tweet["referenced_tweets"]:
                 ref_tweets = tweet["referenced_tweets"]
@@ -165,7 +166,53 @@ class MyClient(StreamingClient):
                 "conversation_id": tweet.conversation_id,
             })
 
-        return tweet_records
+            if tweet.attachments:
+                media_keys = tweet.attachments.get("media_keys") or []
+                media_keys = [{"status_id": tweet.id, "media_key": mk} for mk in media_keys]
+                status_media_records += media_keys
+
+            if tweet.context_annotations:
+                for context_annotation in tweet.context_annotations:
+                    domain = context_annotation["domain"]
+                    entity = context_annotation["entity"]
+                    status_entity_records.append({
+                        "status_id": tweet.id,
+                        "domain_id": domain["id"],
+                        "entity_id": entity["id"]
+                    })
+
+            if tweet.entities:
+                hashtag_entities = tweet.entities.get("hashtags") or []
+                tags = [{"status_id": tweet.id, "tag": ent["tag"]} for ent in hashtag_entities]
+                status_hashtag_records += tags
+
+                mention_entities = tweet.entities.get("mentions") or []
+                mentions = [{
+                    "status_id": tweet.id,
+                    "user_id": ent["id"],
+                    "user_screen_name": ent["username"]
+                } for ent in mention_entities]
+                status_mention_records += mentions
+
+                annotation_entities = tweet.entities.get("annotations") or []
+                annotations = [{
+                    "status_id": tweet.id,
+                    "type": ent["type"],
+                    "text": ent["normalized_text"],
+                    "probability": ent["probability"],
+                } for ent in annotation_entities]
+                status_annotation_records += annotations
+
+                url_entities = tweet.entities.get('urls') or []
+                urls = [{
+                    'status_id' : tweet.id,
+                    'url' : url_ent['expanded_url']
+                } for url_ent in url_entities]
+                status_url_records += urls
+
+        return (tweet_records, status_media_records, status_entity_records,
+                status_hashtag_records, status_mention_records, status_annotation_records, status_url_records)
+
 
     def parse_users(self, users):
         user_records = []
