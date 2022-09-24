@@ -47,11 +47,14 @@ STORAGE_MODE="local" python -m app.tweet_streaming.seed_rules
 ## Usage
 
 ```sh
-# storing to SQLite by default:
 python app.tweet_streaming.job
-# ... or more explicity:
-# STORAGE_MODE="local" python app.tweet_streaming.job
+
+# with batch size:
+BATCH_SIZE=5 python app.tweet_streaming.job
+
+# storing to SQLite:
+STORAGE_MODE="local" python app.tweet_streaming.job
 
 # storing to BigQuery:
-STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET"
+STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python app.tweet_streaming.job
 ```

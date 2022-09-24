@@ -15,6 +15,7 @@ class BigQueryDatabase(BigQueryService):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
+        print("-------------------")
         print("BQ STREAMING DATABASE:", self.dataset_address.upper())
 
     #
@@ -127,9 +128,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_hashtags_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_tags`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_hashtags`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_tags` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_hashtags` (
                 status_id INT64,
                 tag STRING,
             );
@@ -222,6 +223,67 @@ class BigQueryDatabase(BigQueryService):
     def rules_table(self):
         return self.client.get_table(f"{self.dataset_address}.streaming_rules")
 
+    @cached_property
+    def media_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_media")
+
+    @cached_property
+    def tweets_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_tweets")
+
+    @cached_property
+    def status_hashtags_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_hashtags")
+
+    @cached_property
+    def status_mentions_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_mentions")
+
+    @cached_property
+    def status_media_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_media")
+
+    @cached_property
+    def status_annotations_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_annotations")
+
+    @cached_property
+    def status_entities_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_entities")
+
+    @cached_property
+    def status_urls_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_status_urls")
+
+    @cached_property
+    def users_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_users")
+
+    @cached_property
+    def user_hashtags_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_user_hashtags")
+
+    @cached_property
+    def user_mentions_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_user_mentions")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def seed_rules(self, records):
         """
         Inserts rules unless they already exist.
@@ -240,8 +302,35 @@ class BigQueryDatabase(BigQueryService):
             print("NO NEW RULES...")
             return []
 
-    def append_tweets(self, tweets):
-        """Param: tweets (list of dict)"""
-        rows_to_insert = [list(d.values()) for d in tweets]
-        errors = self.client.insert_rows(self.tweets_table, rows_to_insert)
-        return errors
+    def save_media(self, records):
+        self.insert_records_in_batches(self.media_table, records)
+
+    def save_tweets(self, records):
+        self.insert_records_in_batches(self.tweets_table, records)
+
+    def save_status_hashtags(self, records):
+        self.insert_records_in_batches(self.status_hashtags_table, records)
+
+    def save_status_mentions(self, records):
+        self.insert_records_in_batches(self.status_mentions_table, records)
+
+    def save_status_media(self, records):
+        self.insert_records_in_batches(self.status_media_table, records)
+
+    def save_status_annotations(self, records):
+        self.insert_records_in_batches(self.status_annotations_table, records)
+
+    def save_status_entities(self, records):
+        self.insert_records_in_batches(self.status_entities_table, records)
+
+    def save_status_urls(self, records):
+        self.insert_records_in_batches(self.status_urls_table, records)
+
+    def save_users(self, records):
+        self.insert_records_in_batches(self.users_table, records)
+
+    def save_user_hashtags(self, records):
+        self.insert_records_in_batches(self.user_hashtags_table, records)
+
+    def save_user_mentions(self, records):
+        self.insert_records_in_batches(self.user_mentions_table, records)

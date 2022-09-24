@@ -9,7 +9,7 @@ from tweepy.streaming import StreamingClient
 from tweepy import StreamRule
 #from urllib3.exceptions import ProtocolError
 
-#from app import seek_confirmation
+from app import seek_confirmation
 from app.twitter_service import TWITTER_BEARER_TOKEN
 from app.tweet_streaming.storage import get_storage
 
@@ -57,17 +57,18 @@ class MyClient(StreamingClient):
         print("  THREAD:", self.thread)
         print("  USER AGENT:", self.user_agent)
 
-        self.storage = get_storage()
-
-        #seek_confirmation()
-
         # self.add_rules()
+
+        self.storage = get_storage()
 
         self.counter = 0 # refers to the number of responses processed
         self.batch_size_limit = batch_size_limit # refers to the max number of responses in the batch before saving
         self.batch = self.default_batch
+        print("-----------")
+        print("BATCH SIZE: ", self.batch_size_limit)
 
-        self.storage = StreamingDatabase()
+        seek_confirmation()
+
 
     @property
     def default_batch(self):
