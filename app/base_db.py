@@ -1,16 +1,24 @@
 
+import os
 import sqlite3
 
 from pandas import DataFrame
 
+from app import seek_confirmation
+
+#DESTRUCTIVE_MODE = (os.getenv("DESTRUCTIVE_MODE", default="false") == True)
+
+
 class BaseDatabase:
-    """A base interface into sqlite database."""
+    """A base interface into SQLite database."""
 
     def __init__(self, filepath:str, destructive=False, table_names=[]):
         """Params
             filepath (str) : path to the database that will be created
         """
-        self.destructive = bool(destructive)
+        self.destructive = destructive
+        print("DB DESTRUCTIVE:", self.destructive)
+
         self.table_names = table_names
 
         self.filepath = filepath
@@ -24,6 +32,7 @@ class BaseDatabase:
         #print("CURSOR", self.cursor)
 
         if self.destructive:
+            seek_confirmation()
             self.drop_tables()
 
     def drop_table(self, table_name):

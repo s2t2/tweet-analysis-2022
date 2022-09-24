@@ -6,6 +6,13 @@ Setup your twitter credentials, sendgrid credentials, and demonstrate your abili
 
 Also choose a database (sqlite or bigquery), and if bigquery, run migrations and test your ability to connect, as described in the [README](/README.md).
 
+Migrating tables:
+
+```sh
+# WARNING!!! USE WITH CAUTION!!!
+DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_collection.bq_migrations
+```
+
 ## Usage
 
 Collect tweets:

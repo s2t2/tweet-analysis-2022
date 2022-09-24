@@ -2,27 +2,43 @@
 # ADAPTED FROM: https://github.com/s2t2/tweet-analysis-2020/blob/3ab4abf156c48b5cabbf807c0fc30d63f81444f8/app/bq_service.py#L138-L227
 #
 
+from functools import cached_property
+from pprint import pprint
 
 from app.bq_service import BigQueryService, DATASET_ADDRESS
 
 
 class BigQueryDatabase(BigQueryService):
-    """All streaming data table names should end in "_stream"."""
+    """All streaming data table names should start with 'streaming_'"""
 
     def __init__(self, dataset_address=DATASET_ADDRESS, client=None):
         super().__init__(client=client)
         self.dataset_address = dataset_address.replace(";","") # be safe about sql injection, since we'll be using this address in queries
 
+        print("BQ STREAMING DATABASE:", self.dataset_address.upper())
+
     #
     # MIGRATIONS
     #
 
+    def migrate_rules_table(self, destructive=False):
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_rules`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_rules` (
+                rule STRING,
+                created_at TIMESTAMP,
+            );
+        """
+        self.execute_query(sql)
+
     def migrate_media_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.media_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_media`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.media_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_media` (
                 media_key STRING,
                 type STRING,
                 url STRING,
@@ -39,9 +55,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_tweets_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.tweets_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_tweets`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.tweets_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_tweets` (
                 status_id INT64,
                 status_text STRING,
                 created_at TIMESTAMP,
@@ -59,9 +75,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_annotations_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_annotations_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_annotations`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_annotations_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_annotations` (
                 status_id INT64,
                 type STRING,
                 text STRING,
@@ -73,9 +89,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_entities_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_entities_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_entities`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_entities_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_entities` (
                 status_id INT64,
                 domain_id INT64,
                 entity_id INT64,
@@ -86,9 +102,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_media_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_media_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_media`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_media_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_media` (
                 status_id INT64,
                 media_key STRING
             );
@@ -98,9 +114,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_mentions_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_mentions_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_mentions`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_mentions_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_mentions` (
                 status_id INT64,
                 user_id INT64,
                 user_screen_name STRING,
@@ -108,12 +124,12 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
-    def migrate_status_tags_table(self, destructive=False):
+    def migrate_status_hashtags_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_tags_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_tags`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_tags_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_tags` (
                 status_id INT64,
                 tag STRING,
             );
@@ -123,9 +139,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_status_urls_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.status_urls_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_status_urls`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.status_urls_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_status_urls` (
                 status_id INT64,
                 url STRING,
             );
@@ -135,9 +151,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_users_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.users_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_users`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.users_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_users` (
                 user_id INT64,
                 screen_name STRING,
                 name STRING,
@@ -159,9 +175,9 @@ class BigQueryDatabase(BigQueryService):
     def migrate_user_hashtags_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.user_hashtags_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_user_hashtags`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.user_hashtags_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_user_hashtags` (
                 user_id INT64,
                 tag STRING,
                 accessed_at TIMESTAMP,
@@ -172,17 +188,15 @@ class BigQueryDatabase(BigQueryService):
     def migrate_user_mentions_table(self, destructive=False):
         sql = ""
         if destructive:
-            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.user_mentions_stream`; "
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_user_mentions`; "
         sql += f"""
-            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.user_mentions_stream` (
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_user_mentions` (
                 user_id INT64,
                 mention_screen_name STRING,
                 accessed_at TIMESTAMP,
             );
         """
         self.execute_query(sql)
-
-
 
     #
     # FETCHING RECORDS
@@ -192,7 +206,7 @@ class BigQueryDatabase(BigQueryService):
         """Returns a list of rule / rule strings"""
         sql = f"""
             SELECT rule, created_at
-            FROM `{self.dataset_address}.rules`
+            FROM `{self.dataset_address}.streaming_rules`
             ORDER BY created_at;
         """
         return self.execute_query(sql)
@@ -204,17 +218,23 @@ class BigQueryDatabase(BigQueryService):
     # SAVING RECORDS
     #
 
-    def append_rules(self, rules):
+    @cached_property
+    def rules_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_rules")
+
+    def seed_rules(self, records):
         """
         Inserts rules unless they already exist.
         Param: rules (list of dict)
         """
-        rows = self.fetch_rules()
-        existing_rules = [row.rule for row in rows]
-        new_rules = [rule for rule in rules if rule not in existing_rules]
-        if new_rules:
+        existing_rules = self.fetch_rule_names()
+        new_rules = [row["rule"] for row in records if row["rule"] not in existing_rules]
+        if any(new_rules):
             rows_to_insert = [[new_rule, self.generate_timestamp()] for new_rule in new_rules]
+            print("NEW RULES:")
+            pprint(rows_to_insert)
             errors = self.client.insert_rows(self.rules_table, rows_to_insert)
+            print(errors)
             return errors
         else:
             print("NO NEW RULES...")

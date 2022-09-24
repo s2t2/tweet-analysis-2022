@@ -11,8 +11,7 @@ from tweepy import StreamRule
 
 #from app import seek_confirmation
 from app.twitter_service import TWITTER_BEARER_TOKEN
-from app.tweet_streaming.db import StreamingDatabase
-from app.tweet_streaming.bq import BigQueryDatabase
+from app.tweet_streaming.storage import get_storage
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="50"))
 
@@ -47,7 +46,7 @@ class MyClient(StreamingClient):
         The HTTP status codes reference for the Twitter API can be found at https://developer.twitter.com/en/support/twitter-api/error-troubleshooting.
     """
 
-    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size_limit=BATCH_SIZE, storage_env="local"):
+    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size_limit=BATCH_SIZE):
         # todo: also consider passing max_retries
         super().__init__(bearer_token=bearer_token, wait_on_rate_limit=wait_on_rate_limit)
 
@@ -58,11 +57,7 @@ class MyClient(StreamingClient):
         print("  THREAD:", self.thread)
         print("  USER AGENT:", self.user_agent)
 
-        self.storage_env = storage_env
-        if self.storage_env in ["local", "sqlite", "db"]:
-            self.storage = StreamingDatabase()
-        elif self.storage_env in ["remote", "bq"]:
-            self.storage = BigQueryDatabase()
+        self.storage = get_storage()
 
         #seek_confirmation()
 
@@ -378,7 +373,8 @@ if __name__ == "__main__":
         "#January6Hearing lang:en",
         "#Jan6Committee lang:en",
         "#Jan6 lang:en",
-    ] # TODO: self.storage.fetch_rules()
+    ]
+    rules = client.storage.fetch_rule_names()
     stream_rules = [StreamRule(rule) for rule in rules]
     client.add_rules(stream_rules)
     print(client.get_rules())

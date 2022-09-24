@@ -3,42 +3,55 @@
 
 Adapted from [previous approach](https://github.com/s2t2/tweet-analysis-2020/tree/main/app/tweet_collection_v2), updated for Twitter API v2 (Tweepy package v4).
 
-
 ## Setup
 
-Setup your twitter credentials, sendgrid credentials, and demonstrate your ability to connect, as described in the [README](/README.md).
+Setup your Twitter credentials, and demonstrate your ability to connect, as described in the [README](/README.md).
 
-Also choose a database (CSV or bigquery), and if bigquery, run migrations and test your ability to connect, as described in the [README](/README.md).
+Choose a database (SQLite or BigQuery), and if BigQuery, test your ability to connect, as described in the [README](/README.md).
 
+### Database Migrations
 
-### CSV File Storage
+BigQuery Migration:
 
-Make a directory in the "data/tweet_streaming" dir called something like "jan6_committee", for your own event name. In it create a "topics.csv" file with contents like:
+```sh
+# WARNING!!! USE WITH CAUTION!!!
+DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.bq_migrations
+```
 
-    topic
-    #Jan6Committee
-    #January6Committe
-    January 6th
+There is no need to migrate the SQLite database.
+
+### Database Seeds (Adding Rules)
+
+Make a directory in the "data/tweet_streaming" directory with a name representing your own `EVENT_NAME` (e.g. "jan6_committee"). In it create a "rules.csv" file with contents like:
+
+    rule
+    #Jan6Committee lang:en
+    #January6Committe lang:en
     etc...
 
 
-> FYI: the first row "topic" is a required column header. Twitter will match these topics case-insensitively and inclusively, so a topic of "rain" would include tweets about "#Rainbows".
+> FYI: the first row "rule" is a required column header
 
-> GUIDANCE: a narrow set of specific hashtags (i.e. "TrumpImpeachment") may be less likely to encounter crushing rate limits than a broader set of keywords (i.e. "impeach")
-
-
-Collecting tweets locally (where `EVENT_NAME` is the directory where the local "topics.csv" file is stored):
+Seed your chosen database with rules from the CSV file:
 
 ```sh
-STORAGE_ENV="local" EVENT_NAME="jan6_committee" python -m app.tweet_streaming.job
+# for BigQuery:
+STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
+#EVENT_NAME="YOUR_EVENT" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
+
+# for SQLite:
+STORAGE_MODE="local" python -m app.tweet_streaming.seed_rules
+# EVENT_NAME="YOUR_EVENT" python -m app.tweet_streaming.seed_rules
 ```
 
-> NOTE: run this for a while and make sure you aren't getting rate limited too bad, otherwise try removing some topics / splitting topics across more collection servers. it is harder to remove a topic once it has hit the remote databases...
->
 ## Usage
 
 ```sh
+# storing to SQLite by default:
 python app.tweet_streaming.job
+# ... or more explicity:
+# STORAGE_MODE="local" python app.tweet_streaming.job
 
-EVENT_NAME="jan6_committee" python app.tweet_streaming.job
+# storing to BigQuery:
+STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET"
 ```

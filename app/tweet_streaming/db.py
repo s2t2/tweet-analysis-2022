@@ -20,6 +20,9 @@ class StreamingDatabase(BaseDatabase):
     def __init__(self, destructive=False, filepath=DB_FILEPATH):
         super().__init__(filepath=filepath, destructive=destructive, table_names=TABLE_NAMES)
 
+    def seed_rules(self, records):
+        #  TODO: use insert strategy to only instert the new records if they don't exist
+        self.insert_data("rules", records)
 
     def save_media(self, records):
         self.insert_data("media", records)
