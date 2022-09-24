@@ -11,6 +11,8 @@ from tweepy import StreamRule
 
 #from app import seek_confirmation
 from app.twitter_service import TWITTER_BEARER_TOKEN
+from app.tweet_streaming.db import StreamingDatabase
+from app.tweet_streaming.bq import BigQueryDatabase
 
 BATCH_SIZE = int(os.getenv("BATCH_SIZE", default="50"))
 
@@ -45,7 +47,7 @@ class MyClient(StreamingClient):
         The HTTP status codes reference for the Twitter API can be found at https://developer.twitter.com/en/support/twitter-api/error-troubleshooting.
     """
 
-    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size_limit=BATCH_SIZE):
+    def __init__(self, bearer_token=TWITTER_BEARER_TOKEN, wait_on_rate_limit=True, batch_size_limit=BATCH_SIZE, storage_env="local"):
         # todo: also consider passing max_retries
         super().__init__(bearer_token=bearer_token, wait_on_rate_limit=wait_on_rate_limit)
 
@@ -56,13 +58,21 @@ class MyClient(StreamingClient):
         print("  THREAD:", self.thread)
         print("  USER AGENT:", self.user_agent)
 
+        self.storage_env = storage_env
+        if self.storage_env in ["local", "sqlite", "db"]:
+            self.storage = StreamingDatabase()
+        elif self.storage_env in ["remote", "bq"]:
+            self.storage = BigQueryDatabase()
+
         #seek_confirmation()
 
         # self.add_rules()
 
-        self.counter = 0 # refers to the number of tweets processed
-        self.batch_size_limit = batch_size_limit # refers to the max number of tweets in the batch before saving
+        self.counter = 0 # refers to the number of responses processed
+        self.batch_size_limit = batch_size_limit # refers to the max number of responses in the batch before saving
         self.batch = self.default_batch
+
+        self.storage = StreamingDatabase()
 
     @property
     def default_batch(self):
@@ -79,6 +89,13 @@ class MyClient(StreamingClient):
             "user_hashtags": [],
             "user_mentions": [],
         }
+
+    @property
+    def batch_info(self):
+        info = {}
+        for k, v in self.batch.items():
+            info[k] = len(v)
+        return info
 
     @property
     def stream_params(self):
@@ -142,68 +159,36 @@ class MyClient(StreamingClient):
     # DATA PROCESSING
     #
 
-    #def on_data(self, raw_data):
-    #    """This is called when raw data is received from the stream.
-    #        This method handles sending the data to other methods.
-    #    """
-    #    print("-----------")
-    #    print("ON DATA!")
-    #    print(type(raw_data)) #> bytes
-
-    #def on_tweet(self, tweet):
-    #    """This is called when a Tweet is received."""
-    #    print("----------------")
-    #    self.counter +=1
-    #    print(f"DETECTED AN INCOMING TWEET! ({self.counter} -- {tweet.id})")
-    #
-    #    tweet_record, annotation_records, mention_records = parse_tweet(tweet)
-    #
-    #    #self.update_batch(tweet)
-    #    #if len(self.batch["tweets"]) >= self.batch_size:
-    #        #self.save_and_clear_batch()
-
-    #def on_includes(self, includes):
-    #    """This is called when includes are received."""
-    #    print("-----------")
-    #    print("ON INCLUDES!")
-    #    print(type(includes)) #> dict
-    #    print(includes)
-    #    breakpoint()
-    #    #> {
-    #    #>     'users': [
-    #    #>         <User id=734791975 name=Deb2 username=deb2_debra>,
-    #    #>         <User id=165185845 name=Claudia Maheux 🇨🇦 username=claudiacm1146>],
-    #    #>     'tweets': [
-    #    #>         <Tweet id=1573037573425053703 text='Oh my! Heads are going to roll! #Jan6 #Jan6th #Jan6thInsurrection #GOP\nhttps://t.co/oLEJpp6qgq'>
-    #    #>     ]
-    #    #> }
-
-    #def on_errors(self, errors):
-    #    """This is called when errors are received."""
-    #    print("-----------")
-    #    print("ON ERRORS!")
-    #    print(type(errors)) #> dict
-    #    print(errors)
-
-    #def on_matching_rules(self, matching_rules):
-    #    print("-----------")
-    #    print("ON MATCHING RULES!")
-    #    print(matching_rules)
-    #    #breakpoint()
-    #    #> [StreamRule(value=None, tag='', id='1573058221656375301'), StreamRule(value=None, tag='', id='1573064191111577601')]
-    #    # WEIRD THAT THE VALUES ARE NULL?
-
     def on_response(self, response):
-        print("-----------------")
-        print("ON RESPONSE...")
         self.counter += 1
-        print(self.counter, "---", response)
+        print(self.counter, "---", response.data.id)
 
         self.update_batch(response)
 
-        if len(self.batch["tweets"]) > self.batch_size_limit:
-            # TODO: self.storage.save_batch(self.batch)
-            self.batch = self.default_batch
+        if self.counter % self.batch_size_limit == 0:
+            self.save_and_clear_batch()
+
+
+    def save_and_clear_batch(self):
+        print("----------------")
+        print("SAVING BATCH...")
+        pprint(self.batch_info)
+        self.storage.save_media(self.batch["media"])
+        self.storage.save_tweets(self.batch["tweets"])
+        self.storage.save_status_hashtags(self.batch["status_hashtags"])
+        self.storage.save_status_mentions(self.batch["status_mentions"])
+        self.storage.save_status_media(self.batch["status_media"])
+        self.storage.save_status_annotations(self.batch["status_annotations"])
+        self.storage.save_status_entities(self.batch["status_entities"])
+        self.storage.save_status_urls(self.batch["status_urls"])
+        self.storage.save_users(self.batch["users"])
+        self.storage.save_user_hashtags(self.batch["user_hashtags"])
+        self.storage.save_user_mentions(self.batch["user_mentions"])
+
+        print("------------")
+        print("CLEARING BATCH...")
+        self.batch = self.default_batch
+
 
     def update_batch(self, response):
         # wrapper for named tuple ("data", "includes", "errors", "matching_rules")
@@ -328,22 +313,22 @@ class MyClient(StreamingClient):
                 "accessed_at": datetime.now(),
             })
 
-            profile_entities = user.entities.get("description") or {}
-            hashtags = profile_entities.get("hashtags") or []
-            mentions = profile_entities.get("mentions") or []
+            if user.entities:
+                profile_entities = user.entities.get("description") or {}
+                profile_hashtags = profile_entities.get("hashtags") or []
+                profile_mentions = profile_entities.get("mentions") or []
 
-            self.batch["user_hashtags"] += [{
-                "user_id": user.id,
-                "tag": tag["tag"],
-                "accessed_at": datetime.now()
-            } for tag in hashtags]
+                self.batch["user_hashtags"] += [{
+                    "user_id": user.id,
+                    "tag": tag["tag"],
+                    "accessed_at": datetime.now()
+                } for tag in profile_hashtags]
 
-            self.batch["user_mentions"] += [{
-                "user_id": user.id,
-                "mention_screen_name": mention["username"],
-                "accessed_at": datetime.now()
-            } for mention in mentions]
-
+                self.batch["user_mentions"] += [{
+                    "user_id": user.id,
+                    "mention_screen_name": mention["username"],
+                    "accessed_at": datetime.now()
+                } for mention in profile_mentions]
 
     #
     # ERROR HANDLING
@@ -352,12 +337,13 @@ class MyClient(StreamingClient):
     def on_close(self):
         print("-----------")
         print("STREAM ON CLOSE!")
+        self.save_and_clear_batch()
 
     def on_connection_error(self):
         print("-----------")
         print("STREAM ON CONNECTION ERROR!")
         #self.disconnect()
-        pass
+        self.save_and_clear_batch()
 
 
 

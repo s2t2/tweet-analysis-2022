@@ -6,7 +6,7 @@
 from app.bq_service import BigQueryService, DATASET_ADDRESS
 
 
-class BigQueryStorage(BigQueryService):
+class BigQueryDatabase(BigQueryService):
     """All streaming data table names should end in "_stream"."""
 
     def __init__(self, dataset_address=DATASET_ADDRESS, client=None):
