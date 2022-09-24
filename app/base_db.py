@@ -21,6 +21,7 @@ class BaseDatabase:
         self.table_names = table_names
 
         self.filepath = filepath
+        print("------------------")
         print("DB FILEPATH:", self.filepath)
 
         self.connection = sqlite3.connect(self.filepath)

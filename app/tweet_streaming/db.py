@@ -20,6 +20,10 @@ class StreamingDatabase(BaseDatabase):
     def __init__(self, destructive=False, filepath=DB_FILEPATH):
         super().__init__(filepath=filepath, destructive=destructive, table_names=TABLE_NAMES)
 
+    def fetch_rule_names(self):
+        results = self.cursor.execute("SELECT DISTINCT rule FROM rules;").fetchall()
+        return [row["rule"] for row in results]
+
     def seed_rules(self, records):
         #  TODO: use insert strategy to only instert the new records if they don't exist
         self.insert_data("rules", records)
@@ -33,7 +37,7 @@ class StreamingDatabase(BaseDatabase):
     def save_tweets(self, records):
         self.insert_data("tweets", records)
 
-    def save_status_tags(self, records):
+    def save_status_hashtags(self, records):
         self.insert_data("status_hashtags", records)
 
     def save_status_mentions(self, records):
