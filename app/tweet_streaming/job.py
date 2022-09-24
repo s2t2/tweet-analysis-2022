@@ -382,13 +382,6 @@ if __name__ == "__main__":
     #   `cat #meme -grumpy` ... will match Tweets containing the hashtag #meme and the term cat, but only if they do not contain the term grumpy.
     #   `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
     print("RULES:")
-    rules = [
-        "@January6thCmte lang:en",
-        "#January6Committe lang:en",
-        "#January6Hearing lang:en",
-        "#Jan6Committee lang:en",
-        "#Jan6 lang:en",
-    ]
     rules = client.storage.fetch_rule_names()
     stream_rules = [StreamRule(rule) for rule in rules]
     client.add_rules(stream_rules)
