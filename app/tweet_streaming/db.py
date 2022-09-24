@@ -25,8 +25,9 @@ class StreamingDatabase(BaseDatabase):
         return [row["rule"] for row in results]
 
     def seed_rules(self, records):
-        #  TODO: use insert strategy to only instert the new records if they don't exist
-        self.insert_data("rules", records)
+        existing_rules = self.fetch_rule_names()
+        new_records = [record for record in records if record["rule"] not in existing_rules]
+        self.insert_data("rules", new_records)
 
     def save_errors(self, records):
         self.insert_data("errors", records)
