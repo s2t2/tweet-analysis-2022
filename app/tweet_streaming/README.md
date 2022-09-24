@@ -35,16 +35,18 @@ Make a directory in the "data/tweet_streaming" directory with a name representin
 Seed your chosen database with rules from the CSV file:
 
 ```sh
-# for BigQuery:
-STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
-#EVENT_NAME="YOUR_EVENT" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
-
 # for SQLite:
 STORAGE_MODE="local" python -m app.tweet_streaming.seed_rules
 # EVENT_NAME="YOUR_EVENT" python -m app.tweet_streaming.seed_rules
+
+# for BigQuery:
+STORAGE_MODE="remote" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
+#EVENT_NAME="YOUR_EVENT" DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.seed_rules
 ```
 
 ## Usage
+
+Collect tweets matching the specified stream rules:
 
 ```sh
 python app.tweet_streaming.job
