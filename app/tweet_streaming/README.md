@@ -14,7 +14,6 @@ Choose a database (SQLite or BigQuery), and if BigQuery, test your ability to co
 BigQuery Migration:
 
 ```sh
-# WARNING!!! USE WITH CAUTION!!!
 DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.bq_migrations
 ```
 

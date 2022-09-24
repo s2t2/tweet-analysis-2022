@@ -213,6 +213,7 @@ class MyClient(StreamingClient):
             "parameter": e["parameter"], #> entities.mentions.username
             "resource_id": e["resource_id"], #> user screen name
             "resource_type": e["resource_type"], #> user
+            "section": e.get("section"), #> includes
             "title": e.get("title"), #> Forbidden
             "type": e.get("type"), #> 'https://api.twitter.com/2/problems/resource-not-found'
             "value": e.get("value"), #> user screen name

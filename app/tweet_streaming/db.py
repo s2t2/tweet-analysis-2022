@@ -8,8 +8,8 @@ from app.base_db import BaseDatabase
 DB_FILEPATH = os.path.join(os.path.dirname(__file__), "tweet_streaming_development.db") # a path to wherever your database exists
 
 TABLE_NAMES = [
-    # "domains", "entities",
     "rules",
+    "errors",
     "media", "tweets",
     "status_tags", "status_mentions",
     "status_annotations", "status_entities", "status_urls",
@@ -23,6 +23,9 @@ class StreamingDatabase(BaseDatabase):
     def seed_rules(self, records):
         #  TODO: use insert strategy to only instert the new records if they don't exist
         self.insert_data("rules", records)
+
+    def save_errors(self, records):
+        self.insert_data("errors", records)
 
     def save_media(self, records):
         self.insert_data("media", records)

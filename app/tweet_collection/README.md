@@ -9,7 +9,6 @@ Also choose a database (sqlite or bigquery), and if bigquery, run migrations and
 Migrating tables:
 
 ```sh
-# WARNING!!! USE WITH CAUTION!!!
 DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_collection.bq_migrations
 ```
 
