@@ -16,8 +16,7 @@ class BaseDatabase:
         """Params
             filepath (str) : path to the database that will be created
         """
-        self.destructive = destructive
-        print("DB DESTRUCTIVE:", self.destructive)
+        self.destructive = bool(destructive)
 
         self.table_names = table_names
 
@@ -32,6 +31,7 @@ class BaseDatabase:
         #print("CURSOR", self.cursor)
 
         if self.destructive:
+            print("DB DESTRUCTIVE:", self.destructive)
             seek_confirmation()
             self.drop_tables()
 
