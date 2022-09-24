@@ -11,7 +11,7 @@ TABLE_NAMES = [
     "rules",
     "errors",
     "media", "tweets",
-    "status_tags", "status_mentions",
+    "status_hashtags", "status_mentions",
     "status_annotations", "status_entities", "status_urls",
     "users", "user_hashtags", "user_mentions"
 ]
