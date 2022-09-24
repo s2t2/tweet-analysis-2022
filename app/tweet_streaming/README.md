@@ -19,6 +19,23 @@ DATASET_ADDRESS="YOUR_PROJECT.YOUR_DATASET" python -m app.tweet_streaming.bq_mig
 
 There is no need to migrate the SQLite database.
 
+### Streaming Rules
+
+   + https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/build-a-rule
+   + https://docs.tweepy.org/en/stable/streamrule.html#tweepy.StreamRule
+   + https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/post-tweets-search-stream-rules
+
+ All operators are evaluated in a case-insensitive manner. For example, the rule cat will match all of the following: cat, CAT, Cat.
+
+ EXAMPLES:
+   + `#MyTag`
+   + `"twitter data" has:mentions (has:media OR has:links)` ...
+   + `snow day #NoSchool` ... will match Tweets containing the terms snow and day and the hashtag #NoSchool.
+   + `grumpy OR cat OR #meme` will match any Tweets containing at least the terms grumpy or cat, or the hashtag #meme.
+   + `cat #meme -grumpy` ... will match Tweets containing the hashtag #meme and the term cat, but only if they do not contain the term grumpy.
+   + `(grumpy cat) OR (#meme has:images)` ... will return either Tweets containing the terms grumpy and cat, or Tweets with images containing the hashtag #meme. Note that ANDs are applied first, then ORs are applied.
+
+
 ### Database Seeds (Adding Rules)
 
 Make a directory in the "data/tweet_streaming" directory with a name representing your own `EVENT_NAME` (e.g. "jan6_committee"). In it create a "rules.csv" file with contents like:
