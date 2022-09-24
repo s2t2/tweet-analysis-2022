@@ -73,6 +73,7 @@ class MyClient(StreamingClient):
     @property
     def default_batch(self):
         return {
+            "errors": [],
             "media": [],
             "tweets": [],
             "status_media": [],
@@ -169,6 +170,7 @@ class MyClient(StreamingClient):
         print("----------------")
         print("SAVING BATCH...")
         pprint(self.batch_info)
+        self.storage.save_errors(self.batch["errors"])
         self.storage.save_media(self.batch["media"])
         self.storage.save_tweets(self.batch["tweets"])
         self.storage.save_status_hashtags(self.batch["status_hashtags"])
@@ -193,7 +195,7 @@ class MyClient(StreamingClient):
         if any(response.errors):
             print("-----------")
             print("ERRORS...")
-            breakpoint()
+            self.parse_errors(response.errors)
 
         media = response.includes.get("media") or []
         self.parse_media(media)
@@ -204,6 +206,17 @@ class MyClient(StreamingClient):
 
         users = includes.get("users") or []
         self.parse_users(users)
+
+    def parse_errors(self, errors):
+        self.batch["errors"] += [{
+            "detail": e["detail"], #> 'User has been suspended: [...].'
+            "parameter": e["parameter"], #> entities.mentions.username
+            "resource_id": e["resource_id"], #> user screen name
+            "resource_type": e["resource_type"], #> user
+            "title": e.get("title"), #> Forbidden
+            "type": e.get("type"), #> 'https://api.twitter.com/2/problems/resource-not-found'
+            "value": e.get("value"), #> user screen name
+        } for e in errors]
 
     def parse_media(self, media):
         self.batch["media"] += [{

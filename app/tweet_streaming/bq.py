@@ -34,6 +34,24 @@ class BigQueryDatabase(BigQueryService):
         """
         self.execute_query(sql)
 
+    def migrate_errors_table(self, destructive=False):
+        sql = ""
+        if destructive:
+            sql += f"DROP TABLE IF EXISTS `{self.dataset_address}.streaming_errors`; "
+        sql += f"""
+            CREATE TABLE IF NOT EXISTS `{self.dataset_address}.streaming_errors` (
+                detail STRING,
+                parameter STRING,
+                resource_id STRING,
+                resource_type STRING,
+                section STRING,
+                title STRING,
+                type STRING,
+                value STRING,
+            );
+        """
+        self.execute_query(sql)
+
     def migrate_media_table(self, destructive=False):
         sql = ""
         if destructive:
@@ -224,6 +242,10 @@ class BigQueryDatabase(BigQueryService):
         return self.client.get_table(f"{self.dataset_address}.streaming_rules")
 
     @cached_property
+    def errors_table(self):
+        return self.client.get_table(f"{self.dataset_address}.streaming_errors")
+
+    @cached_property
     def media_table(self):
         return self.client.get_table(f"{self.dataset_address}.streaming_media")
 
@@ -301,6 +323,9 @@ class BigQueryDatabase(BigQueryService):
         else:
             print("NO NEW RULES...")
             return []
+
+    def save_errors(self, records):
+        self.insert_records_in_batches(self.errors_table, records)
 
     def save_media(self, records):
         self.insert_records_in_batches(self.media_table, records)

@@ -13,6 +13,7 @@ if __name__ == "__main__":
     seek_confirmation()
 
     #bq.migrate_rules_table(destructive=False)
+    #bq.migrate_errors_table(destructive=False)
     #bq.migrate_media_table(destructive=True)
     #bq.migrate_tweets_table(destructive=True)
     #bq.migrate_status_media_table(destructive=True)
